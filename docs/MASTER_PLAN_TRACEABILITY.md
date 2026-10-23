@@ -1,6 +1,6 @@
 # Matriz de trazabilidad del plan maestro — TTAPP
 
-**Estado:** inicializada durante Paso 0; no existía este archivo en la rama main revisada.  
+**Estado:** inicializada durante Paso 0; se registraron las selecciones propuestas del usuario el 23 de octubre de 2026. La aprobación explícita del gate sigue pendiente. Este archivo no existía en la rama main revisada.  
 **Base de la revisión documental:** main en e7e47e38dd78152a1b5c7fdb43c29b7608640b04 (23 de octubre de 2026).  
 **Importante:** las referencias son evidencia documental/estática, no resultado de una nueva ejecución de pruebas. No se leyeron archivos .env ni se ejecutaron seeds, migraciones o despliegues.
 
@@ -12,17 +12,31 @@
 - **NO-VERIFICADO:** la afirmación necesita una ejecución reproducible que no se realizó durante este Paso 0.
 - **BLOQUEO-GATE:** impide avanzar o abrir el piloto hasta que se cierre con evidencia.
 
+## Registro de respuesta propuesta (23 de octubre de 2026)
+
+El usuario envió selecciones para revisión y pidió mantener el Paso 1 bloqueado hasta aprobación explícita. Las selecciones no se consideran aprobación final.
+
+| ID | Alternativa seleccionada para revisión | Estado |
+|---|---|---|
+| D0-01 | A — mantener confirmación manual existente | Propuesta recibida; pendiente aprobación. No autoriza pasarela, cobros reales nuevos ni cambios de lógica PAY. |
+| D0-02 | B — separación de privilegios/roles | Propuesta recibida; pendiente aprobación y matriz definitiva de permisos. |
+| D0-03 | A — alta controlada por personal autorizado | Propuesta recibida; pendiente aprobación y definición de validación. |
+| D0-04 | B — cancelación por rol/estado desde backend | Propuesta recibida; pendiente aprobación y cierre de reglas específicas. |
+| D0-05 | B — acuse, escalamiento y cierre de pánico | Propuesta recibida; pendiente aprobación y definición operativa del protocolo. |
+| D0-06 | A — zona delimitada y turnos supervisados | Propuesta recibida; pendiente aprobación y concreción de zona, horario, plataformas y grupo. |
+| D0-07 | B — responsables y suplentes, autoridad go/no-go única | Propuesta recibida; pendiente aprobación y asignación de titulares/suplentes. |
+
 ## Trazabilidad de alcance y decisiones
 
 | ID | Requisito / decisión | Evidencia revisada | Estado | Criterio / acción pendiente | Responsable |
 |---|---|---|---|---|---|
-| S0-01 | Decidir si el piloto incluye confirmación manual del cobro | docs/04 excluye pagos del alcance funcional; docs/01 y docs/02 ticket 7.17 mantienen confirmación y cierre | PENDIENTE-DECISIÓN | Aprobar D0-01 y reconciliar el estado final del viaje sin alterar silenciosamente la lógica PAY | Negocio + operaciones |
-| S0-02 | Segregar viajes y auditoría por rol | seed.ts define ADMIN, OPERATOR, FINANCE, DRIVER, PASSENGER; TripsService habilita lectura amplia para staff | BRECHA-TÉCNICA / PENDIENTE-DECISIÓN | Aprobar D0-02; corregir matriz RBAC, aislamiento por organización y consultas de auditoría | Operaciones + seguridad |
-| S0-03 | Alta y validación de pasajero, conductor y vehículo | schema.sql incluye perfiles/documentos con verified; API observada sin CRUD completo para esos flujos | BRECHA-TÉCNICA / PENDIENTE-DECISIÓN | Aprobar D0-03; definir criterio formal de validado y demostrar alta a través de un flujo autorizado | Operaciones |
-| S0-04 | Cancelaciones seguras por rol y estado | docs/02 ticket 7.18; CancelTripDto acepta cancelledBy; TripsService.cancel usa ese valor | BLOQUEO-GATE | Aprobar D0-04; backend deriva actor del token, comprueba viaje/organización/estado y prueba denegaciones | Backend + operaciones |
-| S0-05 | Pánico de pasajero y conductor con atención trazable | docs/04 criterio PANIC-01; no se halló endpoint/modelo/flujo dedicado en OpenAPI/schema/módulos listados | BLOQUEO-GATE | Aprobar D0-05; implementar incidente, acuse, escalamiento, cierre, auditoría, interfaces y pruebas E2E | Seguridad/operaciones |
-| S0-06 | Zona, horario, plataformas y grupo nominal | docs/01 refiere 50–100 unidades; docs/04 propone grupo pequeño en zona acotada; docs/03 deja datos reales pendientes | PENDIENTE-DECISIÓN | Aprobar D0-06, cargar zona/horarios reales autorizados y probar dispositivos y límites | Negocio + operaciones |
-| S0-07 | Responsables y autoridad de go/no-go | docs/03 sección 5/6 y docs/04 checklist piden responsables, pero no se asignan titulares | PENDIENTE-DECISIÓN | Aprobar D0-07; registrar responsables, suplentes, canales y autoridad final | Organización / mesa directiva |
+| S0-01 | Decidir si el piloto incluye confirmación manual del cobro | docs/04 excluye pagos del alcance funcional; docs/01 y docs/02 ticket 7.17 mantienen confirmación y cierre | PROPUESTA A RECIBIDA; APROBACIÓN PENDIENTE | Aprobar D0-01 y reconciliar el estado final del viaje sin alterar silenciosamente la lógica PAY | Negocio + operaciones |
+| S0-02 | Segregar viajes y auditoría por rol | seed.ts define ADMIN, OPERATOR, FINANCE, DRIVER, PASSENGER; TripsService habilita lectura amplia para staff | PROPUESTA B RECIBIDA; MATRIZ FINAL PENDIENTE | Aprobar D0-02; corregir matriz RBAC, aislamiento por organización y consultas de auditoría | Operaciones + seguridad |
+| S0-03 | Alta y validación de pasajero, conductor y vehículo | schema.sql incluye perfiles/documentos con verified; API observada sin CRUD completo para esos flujos | PROPUESTA A RECIBIDA; CRITERIO DE VALIDACIÓN PENDIENTE | Aprobar D0-03; definir criterio formal de validado y demostrar alta a través de un flujo autorizado | Operaciones |
+| S0-04 | Cancelaciones seguras por rol y estado | docs/02 ticket 7.18; CancelTripDto acepta cancelledBy; TripsService.cancel usa ese valor | PROPUESTA B RECIBIDA; BLOQUEO-GATE | Aprobar D0-04; backend deriva actor del token, comprueba viaje/organización/estado y prueba denegaciones | Backend + operaciones |
+| S0-05 | Pánico de pasajero y conductor con atención trazable | docs/04 criterio PANIC-01; no se halló endpoint/modelo/flujo dedicado en OpenAPI/schema/módulos listados | PROPUESTA B RECIBIDA; BLOQUEO-GATE | Aprobar D0-05; implementar incidente, acuse, escalamiento, cierre, auditoría, interfaces y pruebas E2E | Seguridad/operaciones |
+| S0-06 | Zona, horario, plataformas y grupo nominal | docs/01 refiere 50–100 unidades; docs/04 propone grupo pequeño en zona acotada; docs/03 deja datos reales pendientes | PROPUESTA A RECIBIDA; DETALLES PENDIENTES | Aprobar D0-06, cargar zona/horarios reales autorizados y probar dispositivos y límites | Negocio + operaciones |
+| S0-07 | Responsables y autoridad de go/no-go | docs/03 sección 5/6 y docs/04 checklist piden responsables, pero no se asignan titulares | PROPUESTA B RECIBIDA; NOMBRAMIENTOS PENDIENTES | Aprobar D0-07; registrar responsables, suplentes, canales y autoridad final | Organización / mesa directiva |
 | T0-01 | Aislamiento de viajes por organización | TripsService.findAll no añade filtro de organización para staff; canViewTrip trata OPERATOR/ADMIN/FINANCE como acceso amplio | BLOQUEO-GATE | Pruebas negativas de usuario de organización A contra recursos de B en lista/detalle y mutaciones | Backend + seguridad |
 | T0-02 | Autorización de cancelación | cancelación recibe actor desde DTO y el método revisado no valida la participación del usuario antes de mutar | BLOQUEO-GATE | Pruebas por pasajero, conductor, operador, viaje ajeno, otro tenant y cada estado permitido/prohibido | Backend + seguridad |
 | T0-03 | Endpoint/modelo de pánico | No se encontró en api/openapi.yaml ni db/schema.sql, ni módulo pánico entre módulos listados | BRECHA-TÉCNICA | No marcar PANIC-01 como aprobado hasta ejecutar las pruebas específicas del flujo | Backend |
