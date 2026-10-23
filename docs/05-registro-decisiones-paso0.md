@@ -264,3 +264,10 @@ Antes de autorizar el Paso 1 deben registrarse:
 5. la evidencia de ejecución y la revisión del checklist go/no-go.
 
 **Estado del Paso 0:** alternativas autorizadas para implementación y cambios documentales/código en rama aislada; configuración, pruebas, migración y detalles operativos pendientes. Paso 1 y go/no-go siguen bloqueados.
+
+
+## Control de activación después de un viaje
+
+
+- **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
+- **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.

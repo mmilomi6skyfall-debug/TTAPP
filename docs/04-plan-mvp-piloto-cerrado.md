@@ -163,3 +163,10 @@ El usuario indicó implementar las alternativas seleccionadas en la rama `implem
 - **D0-06 A y D0-07 B:** zona, horario, plataformas, grupo nominal, titulares, suplentes y tiempos de escalamiento no se inventan y siguen bloqueando el go/no-go.
 
 La migración SQL se preparó pero no se ejecutó. Build, pruebas, validación OpenAPI y E2E no se han ejecutado en esta sesión.
+
+
+## Controles adicionales de D0-03 y estado de verificación
+
+
+- **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
+- **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.

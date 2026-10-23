@@ -70,3 +70,10 @@ El documento 04 especifica que no debe abrirse el piloto con bloqueos de aislami
 - No se ejecutaron pruebas ni comandos de Node/npm: el trabajo disponible fue una revisión documental/estática mediante el conector.
 - No se afirma que la compilación, las pruebas unitarias, las pruebas E2E o el contrato OpenAPI estén pasando actualmente.
 - La rama de Paso 0 solo debe recibir cambios documentales hasta la aprobación expresa. No iniciar el Paso 1 por inferencia.
+
+
+## Control adicional y estado real de pruebas
+
+
+- **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
+- **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
