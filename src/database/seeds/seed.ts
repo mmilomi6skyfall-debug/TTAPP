@@ -10,31 +10,22 @@ import { Client } from 'pg';
 import * as bcrypt from 'bcrypt';
 
 const PERMISSIONS = [
-  'trips.view',
-  'trips.manage',
-  'trips.review',
-  'dispatch.manual_assign',
-  'dispatch.offers.view',
-  'dispatch.candidates.view',
-  'fares.edit',
-  'fares.publish',
-  'drivers.manage',
-  'vehicles.manage',
-  'users.manage',
-  'finance.view',
-  'finance.reconcile',
-  'audit.view',
+  'trips.view', 'trips.manage', 'trips.review', 'trips.cancel',
+  'dispatch.manual_assign', 'dispatch.offers.view', 'dispatch.candidates.view',
+  'fares.edit', 'fares.publish', 'drivers.manage', 'vehicles.manage', 'users.manage',
+  'finance.view', 'finance.reconcile', 'audit.view', 'panic.alerts.view',
+  'panic.alerts.manage', 'board.summary.view',
 ];
 
-// code -> lista de permisos. DRIVER y PASSENGER no necesitan permisos:
-// solo actuan sobre sus propios recursos, filtrado por su propio userId,
-// no por RBAC (ver PermissionsGuard: sin @RequirePermissions, alcanza con
-// estar autenticado).
+// Separación de privilegios. PASSENGER y DRIVER actúan sobre recursos propios;
+// ADMIN no hereda automáticamente acceso global a viajes, finanzas o auditoría.
 const ROLES: Record<string, string[]> = {
-  ADMIN: PERMISSIONS,
-  OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'dispatch.manual_assign', 'fares.edit'],
-  FINANCE: ['finance.view', 'finance.reconcile', 'trips.view'],
-  DRIVER: ['dispatch.offers.view', 'dispatch.candidates.view'],
+  ADMIN: ['users.manage', 'drivers.manage', 'vehicles.manage', 'fares.edit', 'fares.publish'],
+  OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'trips.cancel', 'dispatch.manual_assign', 'dispatch.candidates.view', 'fares.edit', 'panic.alerts.view', 'panic.alerts.manage'],
+  FINANCE: ['finance.view', 'finance.reconcile'],
+  AUDITOR: ['trips.view', 'audit.view', 'panic.alerts.view'],
+  BOARD: ['board.summary.view'],
+  DRIVER: ['dispatch.offers.view'],
   PASSENGER: [],
 };
 
@@ -107,7 +98,7 @@ async function main() {
        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
       [organizationId, roleIds.ADMIN, ADMIN_EMAIL, passwordHash],
     );
-    console.log(`usuario admin listo: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+    console.log('usuario admin listo; la contraseña no se registra en logs.');
 
     await client.query('COMMIT');
   } catch (err) {
