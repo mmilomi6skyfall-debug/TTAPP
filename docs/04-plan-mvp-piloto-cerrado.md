@@ -5,6 +5,19 @@
 **Estado:** plan de ejecución; ningún criterio se considera aprobado sin evidencia reproducible.  
 **Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Los pagos quedan fuera del alcance funcional del MVP, salvo conservar compatibilidad y no regresión.
 
+## Estado del Paso 0 — pendiente de aprobación humana (23 de octubre de 2026)
+
+La revisión documental y estática del repositorio remoto se ha registrado en **docs/05-registro-decisiones-paso0.md** y **docs/MASTER_PLAN_TRACEABILITY.md**.
+
+- **Confirmado documentalmente:** el plan de este archivo excluye pagos del alcance funcional del MVP salvo compatibilidad/no regresión; la especificación del Paso 7 conserva una confirmación manual que actualmente participa en el cierre del viaje. La reconciliación queda pendiente.
+- **Pendiente:** alcance de pago, matriz de visibilidad por rol, alta/validación, cancelación, protocolo de pánico, zona/horario/plataformas/tamaño de grupo y responsables de operación y go/no-go.
+- **Brechas técnicas registradas:** no se hallaron en la rama revisada un flujo específico de pánico, los roles de auditoría/mesa directiva, rutas completas de alta operativa ni una matriz de trazabilidad existente. También se deben verificar y corregir, con pruebas, las restricciones por organización y por actor en lectura/cancelación de viajes.
+- **No se ha aprobado ninguna propuesta de negocio.** Las recomendaciones del registro son propuestas para revisión, no requisitos autorizados.
+- **Gate:** no iniciar el Paso 1 hasta recibir aprobación expresa de las decisiones de negocio y acordar cómo cerrar las brechas de seguridad P0/P1. Los documentos de los pasos 1, 7 y 8 se conservan sin reinterpretarlos silenciosamente.
+
+Base de la revisión de Paso 0: rama remota main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04. Este dato describe el estado remoto inspeccionado; no equivale a una comprobación del árbol de trabajo local abierto en VS Code.
+
+
 ## 1. MVP y condición de apertura
 
 ### Objetivo del piloto
