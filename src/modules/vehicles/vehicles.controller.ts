@@ -37,7 +37,9 @@ export class VehiclesController {
   const doc=await this.documents.findOne({where:{id:docId,vehicle:{id}},relations:{vehicle:{organization:true}}});
   if(!doc)throw new NotFoundException('Documento no encontrado');
   if(doc.vehicle.organization?.id!==user.organizationId)throw new ForbiddenException('El documento no pertenece a tu organización');
-  if(dto.verified&&doc.expiresAt&&doc.expiresAt<new Date().toISOString().slice(0,10))throw new ConflictException('No se puede verificar un documento vencido');
+  const expirationDate = doc.expiresAt ? new Date(doc.expiresAt as any) : null;
+  const today = new Date(new Date().toISOString().slice(0,10) + 'T00:00:00Z');
+  if (dto.verified && expirationDate && expirationDate.getTime() < today.getTime()) throw new ConflictException('No se puede verificar un documento vencido');
   doc.verified=dto.verified;await this.documents.save(doc);
   await this.audit.record({actorUserId:user.id,organizationId:user.organizationId,action:'onboarding.vehicle_document.verified',entity:'vehicle_documents',entityId:doc.id,newValue:{vehicleId:id,docType:doc.docType,verified:doc.verified}});
   return {id:doc.id,docType:doc.docType,verified:doc.verified,expiresAt:doc.expiresAt};

@@ -161,7 +161,7 @@ export class TripsService {
   async findOne(tripId: string, currentUser?: AuthenticatedUser): Promise<Trip> {
     const trip = await this.trips.findOne({
       where: { id: tripId },
-      relations: ['passenger', 'driver', 'vehicle', 'quotedBy', 'fareRule'],
+      relations: ['organization', 'passenger', 'driver', 'vehicle', 'quotedBy', 'fareRule'],
     });
     if (!trip) throw new NotFoundException('Viaje no encontrado');
     if (currentUser && !this.canViewTrip(trip, currentUser)) {
