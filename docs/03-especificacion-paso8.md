@@ -296,3 +296,12 @@ para la siguiente iteración, en orden sugerido de valor:
    candidatos (en vez de requerir una llamada manual nueva).
 5. Integración real con Google Distance Matrix, reemplazando
    `HaversineDistanceProvider`.
+
+
+---
+
+## Addendum de preparación D0 — 23 de octubre de 2026
+
+En la rama de implementación se añaden altas internas de pasajero/conductor, alta de vehículo, registro de referencias documentales y verificación manual; se bloquea la activación si faltan tipos documentales requeridos en configuration o documentos verificados/vigentes. También se añaden auditoría por organización, resumen agregado BOARD y ciclo persistente de pánico. El flujo de confirmación manual de cobro existente se conserva sin modificar PAY ni integrar pasarela.
+
+El API no carga binarios de documentos: el campo fileUrl es solo una referencia a almacenamiento administrado aún por definir. No se han definido polígono, horarios, plataforma/dispositivos, grupo nominal, titulares/suplentes ni tiempos de escalamiento. La migración no se ha ejecutado y build/pruebas/E2E aún requieren ejecución real.

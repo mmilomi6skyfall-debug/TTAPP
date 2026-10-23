@@ -824,3 +824,10 @@ psql -d taxi_pilot_dev -c "SELECT gross_amount, commission_amount, driver_earnin
 - **Reintento en segundo plano** cuando `startDispatch` no encuentra
   candidatos — por ahora requiere una llamada manual nueva (del
   pasajero, un refresh, o del operador).
+
+
+---
+
+## Addendum de autorización D0-04 — 23 de octubre de 2026
+
+La política seleccionada sustituye el uso original de `dto.cancelledBy`: el cuerpo de cancelación ahora contiene solo `reason` (3–500 caracteres) y el servidor deriva el actor desde el JWT. PASSENGER solo cancela sus viajes; DRIVER solo el viaje asignado; OPERATOR requiere `trips.cancel`; las mutaciones quedan dentro de la organización y de la ventana de estados previa al inicio descrita en este Paso 7. Se añade `CANCELLED_BY_OPERATOR` a enum, esquema, contrato y migración. La lógica de pagos permanece sin cambio. El código y las pruebas agregadas viven en una rama separada; las pruebas no se han ejecutado.

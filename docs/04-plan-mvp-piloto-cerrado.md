@@ -3,7 +3,7 @@
 **Repositorio:** TTAPP  
 **Base revisada:** `main` en `3f13d9c229d896cc4f549ecf3283c4a0a4729865`  
 **Estado:** plan de ejecución; ningún criterio se considera aprobado sin evidencia reproducible.  
-**Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Los pagos quedan fuera del alcance funcional del MVP, salvo conservar compatibilidad y no regresión.
+**Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Por D0-01=A, se conserva exclusivamente la confirmación manual de cobro ya existente (efectivo/terminal del conductor) y el cierre actual del viaje; no se integra pasarela ni se añaden cobros reales.
 
 ## Estado del Paso 0 — pendiente de aprobación humana (23 de octubre de 2026)
 
@@ -35,7 +35,7 @@ Validar en una zona operativa acotada de Huauchinango que una solicitud de viaje
 | Administrador operativo | Panel existente, acceso restringido | Alta/desactivación de cuentas, conductores, vehículos y datos de la organización; roles y permisos mínimos |
 | Auditor | Acceso de solo lectura o exportación controlada | Consultar eventos de auditoría, viajes y alertas del piloto |
 
-No se incluye en el MVP: contabilidad/finanzas ampliadas, oportunidades/expansión, analítica avanzada, automatizaciones de marketing ni push como requisito de apertura. No introducir cambios de lógica de cobros/pagos.
+No se incluye en el MVP: contabilidad/finanzas ampliadas, oportunidades/expansión, analítica avanzada, automatizaciones de marketing ni push como requisito de apertura. La confirmación manual existente es una excepción explícita; su lógica permanece congelada y no se añaden cobros reales ni pasarela.
 
 ### Alcance vertical obligatorio
 1. Alta/autenticación y autorización por rol/organización.
@@ -149,3 +149,17 @@ Priorizar con evidencia y frecuencia de problemas:
 7. Revisión de apertura con operaciones; abrir únicamente si el checklist está aprobado.
 
 **Estado inicial al crear este documento:** pendiente de verificación. Este documento define el estándar; no afirma que las funciones, pruebas, dispositivos, respaldos ni controles estén ya implementados o aprobados.
+
+
+## Implementación de decisiones D0 — rama aislada (23 de octubre de 2026)
+
+El usuario indicó implementar las alternativas seleccionadas en la rama `implementation/approved-directions-2026-10-23`; los cambios no se han fusionado a `main`.
+
+- **D0-01 A:** se conserva confirmación manual y cierre existentes; PAY no se modifica.
+- **D0-02 B:** separación de roles ADMIN, OPERATOR, FINANCE, AUDITOR y BOARD; consulta de auditoría scoped por organización y resumen agregado de dirección.
+- **D0-03 A:** alta interna; el conductor permanece OFFLINE y el vehículo INACTIVE hasta completar la validación configurada. Si no existen tipos documentales requeridos en configuration, la activación falla cerrada.
+- **D0-04 B:** actor de cancelación derivado del JWT, verificación de rol/participación/organización y motivo obligatorio; nuevo estado CANCELLED_BY_OPERATOR.
+- **D0-05 B:** alertas persistentes con acuse, escalamiento y cierre auditados. Sin temporizador ni integración externa hasta decisión operativa.
+- **D0-06 A y D0-07 B:** zona, horario, plataformas, grupo nominal, titulares, suplentes y tiempos de escalamiento no se inventan y siguen bloqueando el go/no-go.
+
+La migración SQL se preparó pero no se ejecutó. Build, pruebas, validación OpenAPI y E2E no se han ejecutado en esta sesión.

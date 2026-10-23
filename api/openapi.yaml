@@ -29,6 +29,14 @@ tags:
     description: Confirmación de cobro (efectivo / terminal)
   - name: Ratings
     description: Calificaciones post-viaje
+  - name: Incidents
+    description: Alertas del botón de pánico
+  - name: Audit
+    description: Consulta de auditoría por organización
+  - name: Board
+    description: Resumen agregado para mesa directiva
+  - name: Onboarding
+    description: Alta interna y validación operativa
 
 paths:
   # ------------------------------------------------------------------
@@ -300,13 +308,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [cancelledBy, reason]
+              required: [reason]
               properties:
-                cancelledBy:
-                  type: string
-                  enum: [PASSENGER, DRIVER, SYSTEM]
                 reason:
                   type: string
+                  minLength: 3
+                  maxLength: 500
+                  description: El actor se deriva del JWT y no del cliente.
       responses:
         '200':
           description: Viaje cancelado
@@ -541,6 +549,351 @@ paths:
         '204':
           description: Posición registrada
 
+
+  /users/passengers:
+    post:
+      tags: [Onboarding]
+      summary: Alta interna de pasajero
+      description: Requiere users.manage. No existe auto-registro público; la operación queda auditada.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePassengerRequest'
+      responses:
+        '201':
+          description: Pasajero creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  role: { type: string, enum: [PASSENGER] }
+                  status: { type: string, enum: [ACTIVE, SUSPENDED, DISABLED] }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/drivers:
+    post:
+      tags: [Onboarding]
+      summary: Alta interna de conductor
+      description: Requiere users.manage y drivers.manage. Se crea OFFLINE y no puede operar hasta cumplir el checklist documental configurado y asociar un vehículo válido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDriverRequest'
+      responses:
+        '201':
+          description: Conductor creado
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /drivers/{driverId}/documents:
+    parameters:
+      - name: driverId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Onboarding]
+      summary: Registrar referencia documental de conductor
+      description: Requiere drivers.manage y pertenencia a la misma organización. Registra la referencia como no verificada; no carga archivos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Referencia registrada como no verificada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /drivers/{driverId}/documents/{documentId}/verify:
+    parameters:
+      - name: driverId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: documentId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Onboarding]
+      summary: Marcar verificación humana de documento de conductor
+      description: Requiere drivers.manage; no permite verificar un documento vencido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyDocumentRequest'
+      responses:
+        '200':
+          description: Verificación actualizada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /drivers/{driverId}/vehicle-assignments:
+    parameters:
+      - name: driverId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Onboarding]
+      summary: Asociar conductor a un vehículo activo
+      description: Requiere drivers.manage y vehicles.manage, mismo tenant y documentos de vehículo configurados/verificados. Cierra la asignación activa anterior si existe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignVehicleRequest'
+      responses:
+        '201':
+          description: Asignación creada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /vehicles:
+    post:
+      tags: [Onboarding]
+      summary: Dar de alta vehículo en estado INACTIVE
+      description: Requiere vehicles.manage. Activar requiere documentos requeridos configurados y vigentes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVehicleRequest'
+      responses:
+        '201':
+          description: Vehículo creado como INACTIVE
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /vehicles/{vehicleId}/documents:
+    parameters:
+      - name: vehicleId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Onboarding]
+      summary: Registrar referencia documental de vehículo
+      description: Requiere vehicles.manage. La verificación inicial queda false; esta ruta no carga archivos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+      responses:
+        '201':
+          description: Referencia documental registrada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /vehicles/{vehicleId}/documents/{documentId}/verify:
+    parameters:
+      - name: vehicleId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: documentId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Onboarding]
+      summary: Marcar verificación humana de documento de vehículo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyDocumentRequest'
+      responses:
+        '200':
+          description: Verificación actualizada
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /vehicles/{vehicleId}/status:
+    parameters:
+      - name: vehicleId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      tags: [Onboarding]
+      summary: Cambiar el estado operativo del vehículo
+      description: Requiere vehicles.manage; activar exige la política documental configurada y satisfecha.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleStatusUpdateRequest'
+      responses:
+        '200':
+          description: Estado actualizado
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /trips/{tripId}/panic:
+    parameters:
+      - $ref: '#/components/parameters/TripId'
+    post:
+      tags: [Incidents]
+      summary: Activar botón de pánico en un viaje propio/asignado
+      description: El actor se determina por JWT. La ubicación es opcional y conserva su marca temporal si se proporciona.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanicTriggerRequest'
+      responses:
+        '201':
+          description: Alerta de pánico registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanicAlert'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /panic/alerts:
+    get:
+      tags: [Incidents]
+      summary: Listar alertas de la organización
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, ACKNOWLEDGED, ESCALATED, CLOSED]
+      responses:
+        '200':
+          description: Alertas recientes; requiere panic.alerts.view
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PanicAlert'
+
+  /panic/alerts/{alertId}/acknowledge:
+    parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Incidents]
+      summary: Acusar recibo de la alerta
+      description: Requiere panic.alerts.manage y la misma organización.
+      responses:
+        '200':
+          description: Alerta acusada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanicAlert'
+
+  /panic/alerts/{alertId}/escalate:
+    parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Incidents]
+      summary: Escalar alerta con nota obligatoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanicResolutionRequest'
+      responses:
+        '200':
+          description: Alerta escalada
+
+  /panic/alerts/{alertId}/close:
+    parameters:
+      - name: alertId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Incidents]
+      summary: Cerrar alerta después de acuse con nota de resolución
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanicResolutionRequest'
+      responses:
+        '200':
+          description: Alerta cerrada
+
+  /audit/logs:
+    get:
+      tags: [Audit]
+      summary: Consultar bitácora de solo lectura por organización
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Eventos de auditoría; requiere audit.view
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEntry'
+
+  /board/summary:
+    get:
+      tags: [Board]
+      summary: Ver resumen agregado de la mesa directiva
+      description: Requiere board.summary.view. No entrega expedientes ni ubicaciones individuales.
+      responses:
+        '200':
+          description: Métricas agregadas de la organización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardSummary'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -611,6 +964,7 @@ components:
         - CLOSED
         - CANCELLED_BY_PASSENGER
         - CANCELLED_BY_DRIVER
+        - CANCELLED_BY_OPERATOR
         - CANCELLED_BY_SYSTEM
         - NO_SHOW
         - DISPUTED
@@ -811,6 +1165,112 @@ components:
           type: string
           format: date-time
 
+    CreatePassengerRequest:
+      type: object
+      required: [fullName, password]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 160 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 32 }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      description: Debe indicar email o teléfono.
+    CreateDriverRequest:
+      type: object
+      required: [fullName, licenseNumber, password]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 160 }
+        licenseNumber: { type: string, minLength: 4, maxLength: 80 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 32 }
+        password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+      description: Debe indicar email o teléfono.
+    CreateVehicleRequest:
+      type: object
+      required: [plate]
+      properties:
+        plate: { type: string, minLength: 3, maxLength: 20 }
+        brand: { type: string, maxLength: 80 }
+        model: { type: string, maxLength: 80 }
+        year: { type: integer, minimum: 1950, maximum: 2100 }
+        vehicleType: { type: string, maxLength: 40 }
+    CreateDocumentRequest:
+      type: object
+      required: [docType, fileUrl]
+      properties:
+        docType: { type: string, minLength: 2, maxLength: 80 }
+        fileUrl: { type: string, minLength: 5, maxLength: 2048, description: Referencia a almacenamiento administrado; no sube archivos }
+        expiresAt: { type: string, format: date }
+    VerifyDocumentRequest:
+      type: object
+      required: [verified]
+      properties:
+        verified: { type: boolean }
+    AssignVehicleRequest:
+      type: object
+      required: [vehicleId]
+      properties:
+        vehicleId: { type: string, format: uuid }
+    VehicleStatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACTIVE, INACTIVE, MAINTENANCE, OUT_OF_SERVICE, BLOCKED] }
+    PanicTriggerRequest:
+      type: object
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+        recordedAt: { type: string, format: date-time }
+        accuracyM: { type: number, minimum: 0 }
+      description: lat y lng deben enviarse juntos.
+    PanicResolutionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    PanicAlert:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tripId: { type: string, format: uuid }
+        actorType: { type: string, enum: [PASSENGER, DRIVER] }
+        status: { type: string, enum: [OPEN, ACKNOWLEDGED, ESCALATED, CLOSED] }
+        location:
+          type: object
+          nullable: true
+          properties:
+            lat: { type: number }
+            lng: { type: number }
+        locationRecordedAt: { type: string, format: date-time, nullable: true }
+        locationAccuracyM: { type: number, nullable: true }
+        createdAt: { type: string, format: date-time }
+        acknowledgedAt: { type: string, format: date-time, nullable: true }
+        escalatedAt: { type: string, format: date-time, nullable: true }
+        escalationNote: { type: string, nullable: true }
+        closedAt: { type: string, format: date-time, nullable: true }
+        closureNote: { type: string, nullable: true }
+    AuditLogEntry:
+      type: object
+      properties:
+        id: { type: string }
+        action: { type: string }
+        entity: { type: string }
+        entityId: { type: string }
+        oldValue: { type: object, nullable: true }
+        newValue: { type: object, nullable: true }
+        reason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    BoardSummary:
+      type: object
+      properties:
+        tripsByStatus:
+          type: object
+          additionalProperties: { type: integer }
+        panicAlertsByStatus:
+          type: object
+          additionalProperties: { type: integer }
+        manuallyConfirmedAmount: { type: number }
+        accruedCommission: { type: number }
     Error:
       type: object
       properties:
