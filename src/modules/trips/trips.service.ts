@@ -24,6 +24,7 @@ import { ForaneoReviewDto } from './dto/foraneo-review.dto';
 import { CancelTripDto } from './dto/cancel-trip.dto';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { AuditService } from '../audit/audit.service';
+import { DocumentPolicy } from '../../common/policies/document-policy';
 import { canViewTripForUser, cancellationStatusForUser } from './trip-access.policy';
 
 interface PaymentConfirmInput {
@@ -200,6 +201,33 @@ export class TripsService {
     return trip;
   }
 
+  private async driverCanReturnToAvailable(driverId: string, organizationId: string): Promise<boolean> {
+    const vehicles = await this.dataSource.query(
+      `SELECT v.id FROM driver_vehicle_assignments a
+       JOIN vehicles v ON v.id = a.vehicle_id
+       WHERE a.driver_id = $1 AND a.active = true
+         AND v.organization_id = $2 AND v.status = 'ACTIVE'
+       LIMIT 1`,
+      [driverId, organizationId],
+    );
+    if (!vehicles.length) return false;
+    const policy = new DocumentPolicy(this.dataSource);
+    try {
+      await policy.assertRequiredDocuments(
+        organizationId, 'driver_documents', 'driver_id', driverId,
+        'onboarding.driver_required_document_types',
+      );
+      await policy.assertRequiredDocuments(
+        organizationId, 'vehicle_documents', 'vehicle_id', vehicles[0].id,
+        'onboarding.vehicle_required_document_types',
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof ForbiddenException) return false;
+      throw error;
+    }
+  }
+
   private assertIsAssignedDriver(
     trip: Trip,
     currentUser: AuthenticatedUser,
@@ -325,6 +353,11 @@ export class TripsService {
       );
     }
 
+    // La finalización no puede saltarse la validación documental de D0-03.
+    const driverCanReturn = await this.driverCanReturnToAvailable(
+      trip.driver.userId,
+      currentUser.organizationId,
+    );
     trip.distanceKm = distanceKm;
     trip.durationMin = durationMin;
     trip.finalFare = finalFare;
@@ -332,12 +365,9 @@ export class TripsService {
     trip.status = TripStatus.PAYMENT_PENDING;
     await this.trips.save(trip);
     await this.recordEvent(tripId, TripStatus.TRIP_IN_PROGRESS, trip.status, currentUser.id);
-
-    // Libera al conductor Y le resetea el reloj de "justicia en la
-    // asignacion" (ver Ticket 7.12 / docs/01-fundamentos-tecnicos.md 2.1)
     await this.drivers.update(trip.driver.userId, {
-      status: 'AVAILABLE' as any,
-      availableSince: new Date(),
+      status: (driverCanReturn ? 'AVAILABLE' : 'OFFLINE') as any,
+      availableSince: driverCanReturn ? new Date() : null,
     });
 
     return this.findOne(tripId);
@@ -514,6 +544,9 @@ export class TripsService {
 
     const from = trip.status;
     const driverToFree = ASSIGNED_STATES.includes(from) ? trip.driver : null;
+    const driverCanReturn = driverToFree
+      ? await this.driverCanReturnToAvailable(driverToFree.userId, currentUser.organizationId)
+      : false;
 
     trip.status = cancellationStatusForUser({
       organizationId: trip.organization?.id ?? '',
@@ -536,8 +569,8 @@ export class TripsService {
 
     if (driverToFree) {
       await this.drivers.update(driverToFree.userId, {
-        status: 'AVAILABLE' as any,
-        availableSince: new Date(),
+        status: (driverCanReturn ? 'AVAILABLE' : 'OFFLINE') as any,
+        availableSince: driverCanReturn ? new Date() : null,
       });
     }
 
