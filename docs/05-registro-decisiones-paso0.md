@@ -1,9 +1,25 @@
 # Registro de decisiones — Paso 0 del MVP TTAPP
 
-**Estado:** preparado para aprobación humana; ninguna recomendación de este documento está aprobada.  
+**Estado:** se recibieron selecciones del usuario para revisión; aprobación explícita del gate pendiente. Las selecciones aún no se consideran decisiones finales aprobadas.  
 **Fecha de revisión:** 23 de octubre de 2026.  
 **Base remota revisada:** rama main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04.  
 **Alcance de este paso:** análisis y documentación únicamente. No se modificó código funcional, no se ejecutaron seeds ni migraciones, no se hizo despliegue y no se procesaron pagos.
+
+## Registro de respuesta del usuario — propuesta para revisión (23 de octubre de 2026)
+
+El usuario remitió selecciones para revisión y pidió expresamente mantener bloqueado el Paso 1 hasta una aprobación explícita. Por tanto, las alternativas elegidas abajo se registran como **propuestas recibidas**, no como decisiones finales aprobadas.
+
+| ID | Selección recibida | Estado y precisiones que todavía requieren cierre |
+|---|---|---|
+| D0-01 | **A — mantener la confirmación manual de pago existente en el piloto.** | Pendiente de aprobación explícita del gate. No autoriza integrar una pasarela, agregar cobros reales ni cambiar la lógica de pagos. |
+| D0-02 | **B — separar privilegios y roles explícitos.** | Pendiente de aprobación del gate y de concretar permisos finales por actor para viajes, auditoría, finanzas, ubicación y accesos excepcionales. |
+| D0-03 | **A — alta controlada por personal autorizado, sin auto-registro público.** | Pendiente de aprobación del gate y de definir el criterio exacto de “validado”, documentos requeridos, vigencia, responsable, suspensión y cambios de vehículo. |
+| D0-04 | **B — reglas de cancelación por rol y estado, derivadas en backend.** | Pendiente de aprobación del gate y de fijar límites exactos por estado, catálogo de motivos, excepciones y facultades de despacho. |
+| D0-05 | **B — protocolo del botón de pánico con acuse, escalamiento y cierre.** | Pendiente de aprobación del gate y de definir responsables/suplentes, tiempos, canales, condiciones de cierre y respuesta externa. |
+| D0-06 | **A — piloto pequeño, zona delimitada y turnos supervisados.** | Pendiente de aprobación del gate y de fijar polígono, días/horas, plataformas y versiones disponibles, lista nominal y tamaño del grupo. |
+| D0-07 | **B — responsables y suplentes por función, con una única autoridad go/no-go.** | Pendiente de aprobación del gate y de asignar titulares/suplentes, canal de soporte, responsable de incidentes y autoridad final. |
+
+**Estado global:** propuesta recibida; no equivale a aprobación final de negocio. **El Paso 1 permanece bloqueado.** No se modifica código funcional ni se ejecutan cambios de pagos, seeds, migraciones o despliegues como parte de este registro.
 
 ## 1. Cómo leer este registro
 

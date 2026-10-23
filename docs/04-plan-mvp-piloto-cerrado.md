@@ -12,8 +12,10 @@ La revisión documental y estática del repositorio remoto se ha registrado en *
 - **Confirmado documentalmente:** el plan de este archivo excluye pagos del alcance funcional del MVP salvo compatibilidad/no regresión; la especificación del Paso 7 conserva una confirmación manual que actualmente participa en el cierre del viaje. La reconciliación queda pendiente.
 - **Pendiente:** alcance de pago, matriz de visibilidad por rol, alta/validación, cancelación, protocolo de pánico, zona/horario/plataformas/tamaño de grupo y responsables de operación y go/no-go.
 - **Brechas técnicas registradas:** no se hallaron en la rama revisada un flujo específico de pánico, los roles de auditoría/mesa directiva, rutas completas de alta operativa ni una matriz de trazabilidad existente. También se deben verificar y corregir, con pruebas, las restricciones por organización y por actor en lectura/cancelación de viajes.
-- **No se ha aprobado ninguna propuesta de negocio.** Las recomendaciones del registro son propuestas para revisión, no requisitos autorizados.
-- **Gate:** no iniciar el Paso 1 hasta recibir aprobación expresa de las decisiones de negocio y acordar cómo cerrar las brechas de seguridad P0/P1. Los documentos de los pasos 1, 7 y 8 se conservan sin reinterpretarlos silenciosamente.
+- **Respuesta recibida para revisión (23 de octubre de 2026):** D0-01=A (mantener confirmación manual existente); D0-02=B (separación de roles); D0-03=A (alta controlada); D0-04=B (cancelación por rol/estado); D0-05=B (acuse/escalamiento/cierre de pánico); D0-06=A (zona pequeña y turnos supervisados); D0-07=B (responsables y autoridad única go/no-go).
+- **Estado de la respuesta:** el usuario pidió expresamente que estas selecciones se registren como propuesta para revisión y que el Paso 1 permanezca bloqueado hasta aprobación explícita. No se tratan como requisitos definitivamente aprobados.
+- **Restricción de pagos:** D0-01=A no autoriza nuevos cobros reales ni una pasarela, y no permite modificar la lógica de pagos.
+- **Gate:** no iniciar el Paso 1 hasta recibir aprobación expresa del conjunto de decisiones, concretar las subdecisiones pendientes y acordar cómo cerrar las brechas de seguridad P0/P1. Los documentos de los pasos 1, 7 y 8 se conservan sin reinterpretarlos silenciosamente.
 
 Base de la revisión de Paso 0: rama remota main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04. Este dato describe el estado remoto inspeccionado; no equivale a una comprobación del árbol de trabajo local abierto en VS Code.
 
