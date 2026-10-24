@@ -24,6 +24,8 @@ import { ForaneoReviewDto } from './dto/foraneo-review.dto';
 import { CancelTripDto } from './dto/cancel-trip.dto';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { AuditService } from '../audit/audit.service';
+import { DocumentPolicy } from '../../common/policies/document-policy';
+import { canViewTripForUser, cancellationStatusForUser } from './trip-access.policy';
 
 interface PaymentConfirmInput {
   method: 'CASH' | 'CARD_TERMINAL';
@@ -67,15 +69,26 @@ export class TripsService {
   // Ticket 7.4 — crear viaje
   // ----------------------------------------------------------------
   async create(dto: TripCreateDto, currentUser: AuthenticatedUser): Promise<Trip> {
-    // Un PASSENGER solo puede crear viajes para si mismo. Solo staff
-    // (OPERATOR/ADMIN, via el permiso trips.manage) puede especificar un
-    // passengerId distinto — y ese caso queda auditado explicitamente.
-    let passengerId = currentUser.id;
-    if (currentUser.role !== 'PASSENGER' && dto.passengerId) {
-      if (!['OPERATOR', 'ADMIN'].includes(currentUser.role) || !currentUser.permissions.includes('trips.manage')) {
-        throw new ForbiddenException('Requiere el permiso trips.manage para crear viajes a nombre de terceros');
+    // Pasajero: siempre crea su propio viaje. Alta a nombre de terceros
+    // restringida a operador autorizado y pasajero de la misma organización.
+    let passengerId: string;
+    if (currentUser.role === 'PASSENGER') {
+      passengerId = currentUser.id;
+    } else if (
+      currentUser.role === 'OPERATOR' &&
+      currentUser.permissions.includes('trips.manage') &&
+      dto.passengerId
+    ) {
+      const passengerExists = await this.dataSource.query(
+        'SELECT 1 FROM passenger_profiles pp JOIN users u ON u.id = pp.user_id WHERE pp.user_id = $1 AND u.organization_id = $2 LIMIT 1',
+        [dto.passengerId, currentUser.organizationId],
+      );
+      if (!passengerExists.length) {
+        throw new ForbiddenException('El pasajero no pertenece a tu organización');
       }
       passengerId = dto.passengerId;
+    } else {
+      throw new ForbiddenException('Solo un pasajero o un operador autorizado puede crear este viaje');
     }
 
     const origin = toGeoPoint(dto.origin);
@@ -111,7 +124,7 @@ export class TripsService {
         action: 'trip.create_on_behalf',
         entity: 'trips',
         entityId: trip.id,
-        newValue: { passengerId, createdBy: currentUser.id },
+        newValue: { createdOnBehalf: true },
         reason: 'Viaje creado por staff a nombre de otro pasajero',
       });
     }
@@ -134,26 +147,24 @@ export class TripsService {
   // Ticket 7.5 — listar / consultar
   // ----------------------------------------------------------------
   async findAll(query: ListTripsQueryDto, currentUser: AuthenticatedUser): Promise<Trip[]> {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { organization: { id: currentUser.organizationId } };
 
-    // Un PASSENGER solo ve sus propios viajes; un DRIVER solo los suyos.
-    // Staff (OPERATOR/ADMIN/FINANCE) puede ver todo. Esto se fuerza aqui,
-    // no se confia en lo que mande el query param.
     if (currentUser.role === 'PASSENGER') {
       where.passenger = { userId: currentUser.id };
     } else if (currentUser.role === 'DRIVER') {
       where.driver = { userId: currentUser.id };
     } else {
+      if (!currentUser.permissions.includes('trips.view')) {
+        throw new ForbiddenException('Requiere el permiso trips.view');
+      }
       if (query.passengerId) where.passenger = { userId: query.passengerId };
       if (query.driverId) where.driver = { userId: query.driverId };
     }
-    if (query.status && query.status.length > 0) {
-      where.status = In(query.status);
-    }
+    if (query.status?.length) where.status = In(query.status);
 
     return this.trips.find({
       where,
-      relations: ['passenger', 'driver', 'vehicle', 'quotedBy'],
+      relations: ['organization', 'passenger', 'driver', 'vehicle', 'quotedBy'],
       order: { requestedAt: 'DESC' },
     });
   }
@@ -161,7 +172,7 @@ export class TripsService {
   async findOne(tripId: string, currentUser?: AuthenticatedUser): Promise<Trip> {
     const trip = await this.trips.findOne({
       where: { id: tripId },
-      relations: ['passenger', 'driver', 'vehicle', 'quotedBy', 'fareRule'],
+      relations: ['organization', 'passenger', 'driver', 'vehicle', 'quotedBy', 'fareRule'],
     });
     if (!trip) throw new NotFoundException('Viaje no encontrado');
     if (currentUser && !this.canViewTrip(trip, currentUser)) {
@@ -171,20 +182,50 @@ export class TripsService {
   }
 
   private canViewTrip(trip: Trip, currentUser: AuthenticatedUser): boolean {
-    if (['OPERATOR', 'ADMIN', 'FINANCE'].includes(currentUser.role)) return true;
-    return (
-      (currentUser.role === 'PASSENGER' && trip.passenger?.userId === currentUser.id) ||
-      (currentUser.role === 'DRIVER' && trip.driver?.userId === currentUser.id)
-    );
+    return canViewTripForUser({
+      organizationId: trip.organization?.id ?? '',
+      passengerId: trip.passenger?.userId ?? null,
+      driverId: trip.driver?.userId ?? null,
+    }, currentUser);
   }
 
-  private async loadForMutation(tripId: string): Promise<Trip> {
+  private async loadForMutation(tripId: string, currentUser: AuthenticatedUser): Promise<Trip> {
     const trip = await this.trips.findOne({
       where: { id: tripId },
-      relations: ['passenger', 'driver', 'vehicle', 'fareRule'],
+      relations: ['organization', 'passenger', 'driver', 'vehicle', 'fareRule'],
     });
     if (!trip) throw new NotFoundException('Viaje no encontrado');
+    if (trip.organization?.id !== currentUser.organizationId) {
+      throw new ForbiddenException('El viaje no pertenece a tu organización');
+    }
     return trip;
+  }
+
+  private async driverCanReturnToAvailable(driverId: string, organizationId: string): Promise<boolean> {
+    const vehicles = await this.dataSource.query(
+      `SELECT v.id FROM driver_vehicle_assignments a
+       JOIN vehicles v ON v.id = a.vehicle_id
+       WHERE a.driver_id = $1 AND a.active = true
+         AND v.organization_id = $2 AND v.status = 'ACTIVE'
+       LIMIT 1`,
+      [driverId, organizationId],
+    );
+    if (!vehicles.length) return false;
+    const policy = new DocumentPolicy(this.dataSource);
+    try {
+      await policy.assertRequiredDocuments(
+        organizationId, 'driver_documents', 'driver_id', driverId,
+        'onboarding.driver_required_document_types',
+      );
+      await policy.assertRequiredDocuments(
+        organizationId, 'vehicle_documents', 'vehicle_id', vehicles[0].id,
+        'onboarding.vehicle_required_document_types',
+      );
+      return true;
+    } catch (error) {
+      if (error instanceof ForbiddenException) return false;
+      throw error;
+    }
   }
 
   private assertIsAssignedDriver(
@@ -218,7 +259,7 @@ export class TripsService {
   // Ticket 7.6 — revision manual FORANEO
   // ----------------------------------------------------------------
   async review(tripId: string, dto: ForaneoReviewDto, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     assertTransition(trip, [TripStatus.PENDING_REVIEW]);
 
     trip.quotedFare = dto.quotedFare;
@@ -247,7 +288,7 @@ export class TripsService {
   // Ticket 7.14 — conductor llega al origen
   // ----------------------------------------------------------------
   async arrive(tripId: string, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     this.assertIsAssignedDriver(trip, currentUser);
     assertTransition(trip, [TripStatus.DRIVER_ASSIGNED, TripStatus.DRIVER_EN_ROUTE]);
 
@@ -262,7 +303,7 @@ export class TripsService {
   // Ticket 7.15 — iniciar viaje (valida codigo de seguridad)
   // ----------------------------------------------------------------
   async start(tripId: string, securityCode: string, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     this.assertIsAssignedDriver(trip, currentUser);
     assertTransition(trip, [TripStatus.DRIVER_ARRIVED]);
 
@@ -281,7 +322,7 @@ export class TripsService {
   // Ticket 7.16 — completar viaje (distancia/tarifa real)
   // ----------------------------------------------------------------
   async complete(tripId: string, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     this.assertIsAssignedDriver(trip, currentUser);
     assertTransition(trip, [TripStatus.TRIP_IN_PROGRESS]);
 
@@ -312,6 +353,11 @@ export class TripsService {
       );
     }
 
+    // La finalización no puede saltarse la validación documental de D0-03.
+    const driverCanReturn = await this.driverCanReturnToAvailable(
+      trip.driver.userId,
+      currentUser.organizationId,
+    );
     trip.distanceKm = distanceKm;
     trip.durationMin = durationMin;
     trip.finalFare = finalFare;
@@ -319,12 +365,9 @@ export class TripsService {
     trip.status = TripStatus.PAYMENT_PENDING;
     await this.trips.save(trip);
     await this.recordEvent(tripId, TripStatus.TRIP_IN_PROGRESS, trip.status, currentUser.id);
-
-    // Libera al conductor Y le resetea el reloj de "justicia en la
-    // asignacion" (ver Ticket 7.12 / docs/01-fundamentos-tecnicos.md 2.1)
     await this.drivers.update(trip.driver.userId, {
-      status: 'AVAILABLE' as any,
-      availableSince: new Date(),
+      status: (driverCanReturn ? 'AVAILABLE' : 'OFFLINE') as any,
+      availableSince: driverCanReturn ? new Date() : null,
     });
 
     return this.findOne(tripId);
@@ -383,7 +426,7 @@ export class TripsService {
     dto: PaymentConfirmInput,
     currentUser: AuthenticatedUser,
   ): Promise<Payment> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     this.assertIsAssignedDriver(trip, currentUser);
     assertTransition(trip, [TripStatus.PAYMENT_PENDING]);
 
@@ -490,7 +533,7 @@ export class TripsService {
   // Ticket 7.18 — cancelar
   // ----------------------------------------------------------------
   async cancel(tripId: string, dto: CancelTripDto, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     assertTransition(trip, [
       TripStatus.REQUESTED,
       TripStatus.PENDING_REVIEW,
@@ -501,21 +544,33 @@ export class TripsService {
 
     const from = trip.status;
     const driverToFree = ASSIGNED_STATES.includes(from) ? trip.driver : null;
+    const driverCanReturn = driverToFree
+      ? await this.driverCanReturnToAvailable(driverToFree.userId, currentUser.organizationId)
+      : false;
 
-    trip.status =
-      dto.cancelledBy === 'PASSENGER'
-        ? TripStatus.CANCELLED_BY_PASSENGER
-        : dto.cancelledBy === 'DRIVER'
-          ? TripStatus.CANCELLED_BY_DRIVER
-          : TripStatus.CANCELLED_BY_SYSTEM;
-    trip.cancellationReason = dto.reason;
+    trip.status = cancellationStatusForUser({
+      organizationId: trip.organization?.id ?? '',
+      passengerId: trip.passenger?.userId ?? null,
+      driverId: trip.driver?.userId ?? null,
+    }, currentUser, dto.reason);
+    trip.cancellationReason = dto.reason.trim();
     await this.trips.save(trip);
-    await this.recordEvent(tripId, from, trip.status, currentUser.id, dto.reason);
+    await this.recordEvent(tripId, from, trip.status, currentUser.id, dto.reason.trim());
+    await this.auditService.record({
+      actorUserId: currentUser.id,
+      organizationId: currentUser.organizationId,
+      action: 'trip.cancelled',
+      entity: 'trips',
+      entityId: tripId,
+      oldValue: { status: from },
+      newValue: { status: trip.status },
+      reason: dto.reason.trim(),
+    });
 
     if (driverToFree) {
       await this.drivers.update(driverToFree.userId, {
-        status: 'AVAILABLE' as any,
-        availableSince: new Date(),
+        status: (driverCanReturn ? 'AVAILABLE' : 'OFFLINE') as any,
+        availableSince: driverCanReturn ? new Date() : null,
       });
     }
 
@@ -526,7 +581,7 @@ export class TripsService {
   // Ticket 7.19 — calificar
   // ----------------------------------------------------------------
   async rate(tripId: string, dto: RatingInput, currentUser: AuthenticatedUser): Promise<Rating> {
-    const trip = await this.loadForMutation(tripId);
+    const trip = await this.loadForMutation(tripId, currentUser);
     if (![TripStatus.PAYMENT_CONFIRMED, TripStatus.CLOSED].includes(trip.status)) {
       throw new ForbiddenException('El viaje todavia no se puede calificar');
     }
