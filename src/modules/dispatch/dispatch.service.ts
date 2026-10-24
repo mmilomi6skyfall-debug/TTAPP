@@ -271,7 +271,7 @@ export class DispatchService {
     response: 'ACCEPTED' | 'REJECTED',
     currentUser: AuthenticatedUser,
   ): Promise<Trip> {
-    if (currentUser.role !== 'DRIVER' || !currentUser.permissions.includes('dispatch.offers.view')) {
+    if (currentUser.role !== 'DRIVER' || !currentUser.permissions.includes('dispatch.offers.respond')) {
       throw new ForbiddenException('Requiere un conductor autorizado con dispatch.offers.view');
     }
 

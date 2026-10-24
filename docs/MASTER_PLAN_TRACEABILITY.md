@@ -140,7 +140,7 @@ El workflow temporal utilizado para generar el lockfile fue eliminado después d
 **Cambios preparados en esta rama:**
 - Lectura de viajes conserva organización en lista/detalle; las mutaciones de viajes validan tenant y las acciones del conductor exigen que el JWT indique rol DRIVER y coincida con el conductor asignado.
 - Cancelación: actor desde JWT, motivo obligatorio existente, límite por estado antes del inicio y nuevo estado genérico CANCELLED_BY_USER; la organización ajena se deniega.
-- Despacho: ranking y arranque comprueban el tenant del viaje; candidatos y score de cancelaciones se filtran por organización; asignación manual y respuesta a ofertas validan tenant de viaje/conductor/vehículo y permisos; validaciones ocurren antes de persistir la respuesta a oferta.
+- Despacho: ranking y arranque comprueban el tenant del viaje; candidatos y score de cancelaciones se filtran por organización; asignación manual y respuesta a ofertas validan tenant de viaje/conductor/vehículo y permisos. Ver y responder ofertas son permisos separados (`dispatch.offers.view` y `dispatch.offers.respond`); las validaciones ocurren antes de persistir la respuesta a oferta.
 - GPS: solo un JWT de rol DRIVER puede enviar su propia posición, y se verifica que exista un perfil activo de esa organización.
 - Documentación y contrato OpenAPI reflejan el nuevo estado y política. Se añadió migración SQL aditiva para el nuevo enum; no se ejecutó.
 - Pruebas unitarias añadidas para la política de cancelación, aislamiento de despacho y GPS.
