@@ -37,7 +37,7 @@ export class DispatchController {
     return this.dispatchService.getRankedCandidates(tripId, user.organizationId);
   }
 
-  @RequirePermissions('dispatch.offers.view')
+  @RequirePermissions('dispatch.offers.respond')
   @Post('dispatch/offers/:offerId/respond')
   async respond(
     @Param('offerId') offerId: string,

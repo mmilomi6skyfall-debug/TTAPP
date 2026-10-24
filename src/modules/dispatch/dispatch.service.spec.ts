@@ -97,6 +97,14 @@ describe('DispatchService organization isolation', () => {
     expect(drivers.update).toHaveBeenCalledWith('driver-a', { status: 'BUSY' });
   });
 
+  it('denies offer responses when the actor has view permission but not respond permission', async () => {
+    await expect(service.respondToOffer('offer-a', 'ACCEPTED', {
+      id: 'driver-a', role: 'DRIVER', organizationId: 'org-a', permissions: ['dispatch.offers.view'],
+    } as any)).rejects.toThrow(ForbiddenException);
+    expect(offers.findOne).not.toHaveBeenCalled();
+    expect(offers.save).not.toHaveBeenCalled();
+  });
+
   it('does not persist an offer response when the trip belongs to another tenant', async () => {
     offers.findOne.mockResolvedValue({
       id: 'offer-a',
@@ -105,7 +113,7 @@ describe('DispatchService organization isolation', () => {
       respondedAt: null,
     });
     await expect(service.respondToOffer('offer-a', 'ACCEPTED', {
-      id: 'driver-a', role: 'DRIVER', organizationId: 'org-a', permissions: ['dispatch.offers.view'],
+      id: 'driver-a', role: 'DRIVER', organizationId: 'org-a', permissions: ['dispatch.offers.respond'],
     } as any)).rejects.toThrow(ForbiddenException);
     expect(offers.save).not.toHaveBeenCalled();
     expect(trips.save).not.toHaveBeenCalled();
@@ -121,7 +129,7 @@ describe('DispatchService organization isolation', () => {
     });
     db.query.mockResolvedValueOnce([]);
     await expect(service.respondToOffer('offer-a', 'ACCEPTED', {
-      id: 'driver-a', role: 'DRIVER', organizationId: 'org-a', permissions: ['dispatch.offers.view'],
+      id: 'driver-a', role: 'DRIVER', organizationId: 'org-a', permissions: ['dispatch.offers.respond'],
     } as any)).rejects.toThrow(ConflictException);
     expect(offers.save).not.toHaveBeenCalled();
     expect(trips.save).not.toHaveBeenCalled();
