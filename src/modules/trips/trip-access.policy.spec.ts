@@ -12,7 +12,7 @@ describe('trip access and cancellation policy', () => {
     expect(canViewTripForUser(facts, user('passenger-1', 'PASSENGER'))).toBe(true);
     expect(canViewTripForUser(facts, user('passenger-2', 'PASSENGER'))).toBe(false);
     expect(canViewTripForUser(facts, user('driver-1', 'DRIVER'))).toBe(true);
-    expect(canViewTripForUser(facts, user('auditor-1', 'AUDITOR', 'org-a', ['trips.view'])).toBe(true);
+    expect(canViewTripForUser(facts, user('auditor-1', 'AUDITOR', 'org-a', ['trips.view']))).toBe(true);
     expect(canViewTripForUser(facts, user('auditor-1', 'AUDITOR', 'org-b', ['trips.view']))).toBe(false);
     expect(canViewTripForUser(facts, user('admin-1', 'ADMIN'))).toBe(false);
   });
