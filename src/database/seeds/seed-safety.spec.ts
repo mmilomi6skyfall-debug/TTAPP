@@ -16,6 +16,7 @@ describe('seed safety', () => {
   it('requires explicit non-placeholder admin credentials', () => {
     expect(() => requireSeedAdminCredentials({})).toThrow(/SEED_ADMIN_EMAIL/);
     expect(() => requireSeedAdminCredentials({ SEED_ADMIN_EMAIL: 'admin@example.test', SEED_ADMIN_PASSWORD: 'change_me_password_123' })).toThrow(/placeholder/);
-    expect(() => requireSeedAdminCredentials({ SEED_ADMIN_EMAIL: 'local-admin@example.test', SEED_ADMIN_PASSWORD: 'local-only-strong-passphrase-938' })).not.toThrow();
+    expect(() => requireSeedAdminCredentials({ SEED_ADMIN_EMAIL: 'local-admin@local.test', SEED_ADMIN_PASSWORD: 'REPLACE_WITH_LOCAL_RANDOM_PASSPHRASE_AT_LEAST_16_CHARS' })).toThrow(/placeholder/);
+    expect(() => requireSeedAdminCredentials({ SEED_ADMIN_EMAIL: 'local-admin@local.test', SEED_ADMIN_PASSWORD: 'local-only-strong-passphrase-938' })).not.toThrow();
   });
 });
