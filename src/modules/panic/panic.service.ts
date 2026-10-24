@@ -11,7 +11,7 @@ import { DriverLocation } from '../gps/entities/driver-location.entity';
 import { TripStatus } from '../../common/enums';
 import { toGeoPoint } from '../../common/types/geo.util';
 import { AuditService } from '../audit/audit.service';
-const TERMINAL=new Set<TripStatus>([TripStatus.CLOSED,TripStatus.CANCELLED_BY_PASSENGER,TripStatus.CANCELLED_BY_DRIVER,TripStatus.CANCELLED_BY_OPERATOR,TripStatus.CANCELLED_BY_SYSTEM,TripStatus.NO_SHOW,TripStatus.DISPUTED]);
+const TERMINAL=new Set<TripStatus>([TripStatus.CLOSED,TripStatus.CANCELLED_BY_PASSENGER,TripStatus.CANCELLED_BY_DRIVER,TripStatus.CANCELLED_BY_OPERATOR,TripStatus.CANCELLED_BY_SYSTEM,TripStatus.TRIP_COMPLETED,TripStatus.PAYMENT_PENDING,TripStatus.PAYMENT_CONFIRMED,TripStatus.NO_SHOW,TripStatus.DISPUTED]);
 @Injectable()
 export class PanicService {
  constructor(@InjectRepository(PanicAlert) private readonly alerts:Repository<PanicAlert>,@InjectRepository(Trip) private readonly trips:Repository<Trip>,@InjectRepository(DriverLocation) private readonly locations:Repository<DriverLocation>,private readonly audit:AuditService){}
