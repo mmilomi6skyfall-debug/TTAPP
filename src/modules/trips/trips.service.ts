@@ -124,7 +124,7 @@ export class TripsService {
         action: 'trip.create_on_behalf',
         entity: 'trips',
         entityId: trip.id,
-        newValue: { passengerId, createdBy: currentUser.id },
+        newValue: { createdOnBehalf: true },
         reason: 'Viaje creado por staff a nombre de otro pasajero',
       });
     }
