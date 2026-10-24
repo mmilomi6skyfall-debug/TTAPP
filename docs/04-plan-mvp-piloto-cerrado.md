@@ -158,7 +158,7 @@ El usuario indicó implementar las alternativas seleccionadas en la rama `implem
 - **D0-01 A:** se conserva confirmación manual y cierre existentes; PAY no se modifica.
 - **D0-02 B:** separación de roles ADMIN, OPERATOR, FINANCE, AUDITOR y BOARD; consulta de auditoría scoped por organización y resumen agregado de dirección.
 - **D0-03 A:** alta interna; el conductor permanece OFFLINE y el vehículo INACTIVE hasta completar la validación configurada. Si no existen tipos documentales requeridos en configuration, la activación falla cerrada.
-- **D0-04 B:** actor de cancelación derivado del JWT, verificación de rol/participación/organización y motivo obligatorio; nuevo estado CANCELLED_BY_OPERATOR.
+- **D0-04 (revisión del 24 de octubre, A):** cualquier usuario autenticado puede cancelar un viaje de su organización antes del inicio. El actor se deriva del JWT; se conserva el motivo obligatorio, se deniega cross-organization y el estado genérico nuevo es CANCELLED_BY_USER. No autoriza cancelación del servicio ya iniciado.
 - **D0-05 B:** alertas persistentes con acuse, escalamiento y cierre auditados. Sin temporizador ni integración externa hasta decisión operativa.
 - **D0-06 A y D0-07 B:** zona, horario, plataformas, grupo nominal, titulares, suplentes y tiempos de escalamiento no se inventan y siguen bloqueando el go/no-go.
 

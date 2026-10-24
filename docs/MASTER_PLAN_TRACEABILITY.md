@@ -131,3 +131,18 @@ Commit con lockfile regenerado: `d80e16ae4c93dd39ad841f06dc9282142e09b4fd`.
 | Migraciones, seeds, despliegues | No ejecutados |
 
 El workflow temporal utilizado para generar el lockfile fue eliminado después de obtener el archivo generado. El workflow normal de calidad y seguridad quedó habilitado también para la rama de remediación. La actualización mayor de NestJS se hizo en una rama aislada y pasó las verificaciones automatizadas disponibles; sigue pendiente revisión humana del diff antes de fusionar. No se declara que la integración con servicios reales ni la apertura del piloto estén aprobadas.
+
+
+## Paso 2 — autorización e aislamiento por organización (rama aislada, 24 de octubre de 2026)
+
+**Decisiones vigentes:** D0-02=B (separación de privilegios) y, por selección posterior del usuario, D0-04=A (cualquier usuario autenticado puede cancelar un viaje de su misma organización antes del inicio). Esta decisión sustituye la implementación previa D0-04=B; no permite cruzar organizaciones ni cancelar viajes ya iniciados.
+
+**Cambios preparados en esta rama:**
+- Lectura de viajes conserva organización en lista/detalle; las mutaciones de viajes validan tenant y las acciones del conductor exigen que el JWT indique rol DRIVER y coincida con el conductor asignado.
+- Cancelación: actor desde JWT, motivo obligatorio existente, límite por estado antes del inicio y nuevo estado genérico CANCELLED_BY_USER; la organización ajena se deniega.
+- Despacho: ranking y arranque comprueban el tenant del viaje; candidatos y score de cancelaciones se filtran por organización; asignación manual y respuesta a ofertas validan tenant de viaje/conductor/vehículo y permisos; validaciones ocurren antes de persistir la respuesta a oferta.
+- GPS: solo un JWT de rol DRIVER puede enviar su propia posición, y se verifica que exista un perfil activo de esa organización.
+- Documentación y contrato OpenAPI reflejan el nuevo estado y política. Se añadió migración SQL aditiva para el nuevo enum; no se ejecutó.
+- Pruebas unitarias añadidas para la política de cancelación, aislamiento de despacho y GPS.
+
+**Estado de verificación al crear estos cambios:** no se afirma aprobación de build/tests hasta que el workflow de la rama termine. La verificación deberá incluir instalación limpia, lint, build, pruebas unitarias, smoke E2E y lint OpenAPI. No se ejecutaron seeds, migraciones, despliegues ni operaciones contra datos compartidos.
