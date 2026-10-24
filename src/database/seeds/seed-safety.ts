@@ -21,11 +21,14 @@ export function requireSeedAdminCredentials(env: NodeJS.ProcessEnv): { email: st
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('SEED_ADMIN_EMAIL must contain an explicit valid email.');
   }
+  if (/@(?:example\.(?:com|test)|example|localhost)$/i.test(email)) {
+    throw new Error('SEED_ADMIN_EMAIL cannot use a placeholder domain.');
+  }
   if (!password || password.length < 16) {
     throw new Error('SEED_ADMIN_PASSWORD must be set and at least 16 characters.');
   }
   const normalized = password.toLowerCase();
-  const forbidden = ['password', 'changeme', 'change_me', 'placeholder', 'admin123', 'example', 'test'];
+  const forbidden = ['password', 'changeme', 'change_me', 'placeholder', 'admin123', 'example', 'test', 'replace_with', 'your_password'];
   if (forbidden.some((part) => normalized.includes(part))) {
     throw new Error('SEED_ADMIN_PASSWORD cannot be a placeholder or example value.');
   }
