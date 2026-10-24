@@ -43,6 +43,7 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts
 
       - name: Apply non-breaking security fixes to the dependency lock
+        continue-on-error: true
         run: npm audit fix --package-lock-only --ignore-scripts
 
       - name: Upload normalized lockfile for review
@@ -106,10 +107,23 @@ jobs:
           cache: npm
 
       - name: Apply non-breaking security fixes to the dependency lock
+        continue-on-error: true
         run: npm audit fix --package-lock-only --ignore-scripts
 
       - name: Install locked dependencies
         run: npm ci
 
       - name: Audit production dependency tree
-        run: npm audit --omit=dev --audit-level=high
+        run: |
+          npm audit --omit=dev --json > npm-audit-production.json || audit_status=$?
+          cat npm-audit-production.json
+          exit ${audit_status:-0}
+
+      - name: Upload production dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dependency-audit
+          path: npm-audit-production.json
+          if-no-files-found: ignore
+          retention-days: 7
