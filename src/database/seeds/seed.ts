@@ -23,7 +23,7 @@ const ROLES: Record<string, string[]> = {
   ADMIN: ['users.manage', 'drivers.manage', 'vehicles.manage', 'configuration.manage', 'fares.edit', 'fares.publish'],
   OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'trips.cancel', 'dispatch.manual_assign', 'dispatch.candidates.view', 'fares.edit', 'panic.alerts.view', 'panic.alerts.manage'],
   FINANCE: ['finance.view', 'finance.reconcile'],
-  AUDITOR: ['trips.view', 'audit.view', 'panic.alerts.view'],
+  AUDITOR: ['audit.view'],
   BOARD: ['board.summary.view'],
   DRIVER: ['dispatch.offers.view'],
   PASSENGER: [],

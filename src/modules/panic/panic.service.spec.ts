@@ -8,7 +8,7 @@ describe('PanicService',()=>{
  const trip={id:'trip-1',organization:{id:'org-a'},passenger:{userId:'passenger-1'},driver:{userId:'driver-1'},status:TripStatus.TRIP_IN_PROGRESS};
  let alerts:any,trips:any,locations:any,audit:any,service:PanicService;
  beforeEach(()=>{
-  alerts={create:jest.fn((v)=>v),save:jest.fn(async(v)=>({...v,id:'alert-1',createdAt:new Date('2026-01-01T00:00:00Z')})),findOne:jest.fn(),find:jest.fn()};
+  alerts={create:jest.fn((v:Record<string, any>)=>v),save:jest.fn(async(v:Record<string, any>)=>({...v,id:'alert-1',createdAt:new Date('2026-01-01T00:00:00Z')})),findOne:jest.fn(),find:jest.fn()};
   trips={findOne:jest.fn(async()=>trip)};locations={findOne:jest.fn()};audit={record:jest.fn(async()=>undefined)};
   service=new PanicService(alerts,trips,locations,audit);
  });
