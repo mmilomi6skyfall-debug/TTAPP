@@ -1,0 +1,36 @@
+name: Temporary dependency lock resolution
+
+on:
+  push:
+    branches:
+      - security/production-dependency-remediation-2026-10-23
+    paths:
+      - 'package.json'
+      - '.github/workflows/dependency-lock-resolution.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Resolve lockfile without running package scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit
+      - name: Capture production audit
+        run: npm audit --omit=dev --json > npm-audit-production.json || true
+      - name: Upload generated lock and audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-resolution-output
+          path: |
+            package-lock.json
+            npm-audit-production.json
+          if-no-files-found: error
+          retention-days: 7
