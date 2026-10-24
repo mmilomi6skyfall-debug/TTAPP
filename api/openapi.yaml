@@ -1317,13 +1317,7 @@ components:
           uniqueItems: true
           items:
             type: string
-            pattern: '^[A-Z][A-Z0-9_]{1,79}      type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-
+            pattern: '^[A-Z][A-Z0-9_]{1,79}$'
     RequiredDocumentsConfiguration:
       type: object
       properties:
