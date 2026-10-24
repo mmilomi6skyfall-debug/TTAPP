@@ -42,7 +42,7 @@ describe('GpsController tenant and actor isolation', () => {
 
   it('persists own GPS only after validating the active profile in the same organization', async () => {
     const history = { create: jest.fn((value: any) => value), save: jest.fn(async (value: any) => value) };
-    const db = { query: jest.fn(async () => [] as any[])
+    const db = { query: jest.fn<(...args: any[]) => Promise<any[]>>(async () => [])
       .mockResolvedValueOnce([{ user_id: 'driver-a' }])
       .mockResolvedValueOnce([]) };
     const controller = new GpsController(history as any, db as any);
