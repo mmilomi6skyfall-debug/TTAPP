@@ -13,14 +13,14 @@ const PERMISSIONS = [
   'trips.view', 'trips.manage', 'trips.review', 'trips.cancel',
   'dispatch.manual_assign', 'dispatch.offers.view', 'dispatch.candidates.view',
   'fares.edit', 'fares.publish', 'drivers.manage', 'vehicles.manage', 'users.manage',
-  'finance.view', 'finance.reconcile', 'audit.view', 'panic.alerts.view',
+  'finance.view', 'finance.reconcile', 'audit.view', 'configuration.manage', 'panic.alerts.view',
   'panic.alerts.manage', 'board.summary.view',
 ];
 
 // Separación de privilegios. PASSENGER y DRIVER actúan sobre recursos propios;
 // ADMIN no hereda automáticamente acceso global a viajes, finanzas o auditoría.
 const ROLES: Record<string, string[]> = {
-  ADMIN: ['users.manage', 'drivers.manage', 'vehicles.manage', 'fares.edit', 'fares.publish'],
+  ADMIN: ['users.manage', 'drivers.manage', 'vehicles.manage', 'configuration.manage', 'fares.edit', 'fares.publish'],
   OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'trips.cancel', 'dispatch.manual_assign', 'dispatch.candidates.view', 'fares.edit', 'panic.alerts.view', 'panic.alerts.manage'],
   FINANCE: ['finance.view', 'finance.reconcile'],
   AUDITOR: ['trips.view', 'audit.view', 'panic.alerts.view'],
