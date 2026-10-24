@@ -29,10 +29,13 @@ const ROLES: Record<string, string[]> = {
   PASSENGER: [],
 };
 
-const ADMIN_EMAIL = 'admin@piloto.mx';
-const ADMIN_PASSWORD = 'Admin123!'; // SOLO para el piloto en desarrollo — cambiar en produccion
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@piloto.mx';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
 
 async function main() {
+  if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 16) {
+    throw new Error('Define SEED_ADMIN_PASSWORD con al menos 16 caracteres antes de ejecutar npm run seed.');
+  }
   const client = new Client({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),

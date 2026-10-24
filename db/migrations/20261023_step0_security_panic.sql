@@ -5,6 +5,7 @@ ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES 
 UPDATE audit_logs a SET organization_id = u.organization_id
 FROM users u WHERE a.actor_user_id = u.id AND a.organization_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_audit_logs_org_id ON audit_logs (organization_id,id DESC);
+ALTER TABLE vehicles ALTER COLUMN status SET DEFAULT 'INACTIVE';
 CREATE TABLE IF NOT EXISTS panic_alerts (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
  organization_id UUID NOT NULL REFERENCES organizations(id),

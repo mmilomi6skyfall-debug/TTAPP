@@ -118,7 +118,7 @@ CREATE TABLE vehicles (
     model           TEXT,
     year            INT,
     vehicle_type    TEXT NOT NULL DEFAULT 'STANDARD',  -- usado en el filtro de compatibilidad DSP
-    status          vehicle_status NOT NULL DEFAULT 'ACTIVE',
+    status          vehicle_status NOT NULL DEFAULT 'INACTIVE',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -432,6 +432,7 @@ CREATE TABLE configuration (
 -- valor anterior, valor nuevo, por qué. Tabla append-only, nunca se edita ni se borra.
 CREATE TABLE audit_logs (
     id             BIGSERIAL PRIMARY KEY,
+    organization_id UUID REFERENCES organizations(id),
     actor_user_id  UUID REFERENCES users(id),
     action         TEXT NOT NULL,
     entity         TEXT NOT NULL,
