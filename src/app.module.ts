@@ -27,6 +27,8 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ConfigurationModule } from './modules/configuration/configuration.module';
+import { PanicModule } from './modules/panic/panic.module';
+import { BoardModule } from './modules/board/board.module';
 
 @Module({
   imports: [
@@ -62,6 +64,8 @@ import { ConfigurationModule } from './modules/configuration/configuration.modul
     RatingsModule,
     NotificationsModule,
     ConfigurationModule,
+    PanicModule,
+    BoardModule,
 
     HealthModule,
   ],

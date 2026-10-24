@@ -3,19 +3,19 @@
 **Repositorio:** TTAPP  
 **Base revisada:** `main` en `3f13d9c229d896cc4f549ecf3283c4a0a4729865`  
 **Estado:** plan de ejecución; ningún criterio se considera aprobado sin evidencia reproducible.  
-**Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Los pagos quedan fuera del alcance funcional del MVP, salvo conservar compatibilidad y no regresión.
+**Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Por D0-01=A, se conserva exclusivamente la confirmación manual de cobro ya existente (efectivo/terminal del conductor) y el cierre actual del viaje; no se integra pasarela ni se añaden cobros reales.
 
-## Estado del Paso 0 — pendiente de aprobación humana (23 de octubre de 2026)
+## Estado del Paso 0 — decisiones seleccionadas; verificación de salida pendiente (23 de octubre de 2026)
 
 La revisión documental y estática del repositorio remoto se ha registrado en **docs/05-registro-decisiones-paso0.md** y **docs/MASTER_PLAN_TRACEABILITY.md**.
 
 - **Confirmado documentalmente:** el plan de este archivo excluye pagos del alcance funcional del MVP salvo compatibilidad/no regresión; la especificación del Paso 7 conserva una confirmación manual que actualmente participa en el cierre del viaje. La reconciliación queda pendiente.
-- **Pendiente:** alcance de pago, matriz de visibilidad por rol, alta/validación, cancelación, protocolo de pánico, zona/horario/plataformas/tamaño de grupo y responsables de operación y go/no-go.
+- **Cerrado para diseño:** alcance de pago, separación de roles, alta interna, cancelación por rol/estado, ciclo de pánico, piloto urbano acotado y estructura de responsabilidades. Los parámetros operativos que requieren datos reales siguen como condiciones explícitas de apertura.
 - **Brechas técnicas registradas:** no se hallaron en la rama revisada un flujo específico de pánico, los roles de auditoría/mesa directiva, rutas completas de alta operativa ni una matriz de trazabilidad existente. También se deben verificar y corregir, con pruebas, las restricciones por organización y por actor en lectura/cancelación de viajes.
 - **Respuesta recibida para revisión (23 de octubre de 2026):** D0-01=A (mantener confirmación manual existente); D0-02=B (separación de roles); D0-03=A (alta controlada); D0-04=B (cancelación por rol/estado); D0-05=B (acuse/escalamiento/cierre de pánico); D0-06=A (zona pequeña y turnos supervisados); D0-07=B (responsables y autoridad única go/no-go).
-- **Estado de la respuesta:** el usuario pidió expresamente que estas selecciones se registren como propuesta para revisión y que el Paso 1 permanezca bloqueado hasta aprobación explícita. No se tratan como requisitos definitivamente aprobados.
+- **Estado de la respuesta:** tras la selección inicial, el usuario ordenó implementar los cambios y solicitó completar las tareas pendientes para cerrar el Paso 0. Las alternativas se consideran autorizadas para esta rama de implementación. Esto no autoriza desplegar ni abrir el piloto.
 - **Restricción de pagos:** D0-01=A no autoriza nuevos cobros reales ni una pasarela, y no permite modificar la lógica de pagos.
-- **Gate:** no iniciar el Paso 1 hasta recibir aprobación expresa del conjunto de decisiones, concretar las subdecisiones pendientes y acordar cómo cerrar las brechas de seguridad P0/P1. Los documentos de los pasos 1, 7 y 8 se conservan sin reinterpretarlos silenciosamente.
+- **Gate:** el Paso 0 queda cerrado como definición de alcance y criterios; la implementación y validación técnica sigue en una rama aislada. No desplegar ni abrir el piloto hasta satisfacer los criterios técnicos y operativos del nuevo documento de cierre. Los documentos de los pasos 1, 7 y 8 se mantienen con addenda explícitos.
 
 Base de la revisión de Paso 0: rama remota main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04. Este dato describe el estado remoto inspeccionado; no equivale a una comprobación del árbol de trabajo local abierto en VS Code.
 
@@ -35,7 +35,7 @@ Validar en una zona operativa acotada de Huauchinango que una solicitud de viaje
 | Administrador operativo | Panel existente, acceso restringido | Alta/desactivación de cuentas, conductores, vehículos y datos de la organización; roles y permisos mínimos |
 | Auditor | Acceso de solo lectura o exportación controlada | Consultar eventos de auditoría, viajes y alertas del piloto |
 
-No se incluye en el MVP: contabilidad/finanzas ampliadas, oportunidades/expansión, analítica avanzada, automatizaciones de marketing ni push como requisito de apertura. No introducir cambios de lógica de cobros/pagos.
+No se incluye en el MVP: contabilidad/finanzas ampliadas, oportunidades/expansión, analítica avanzada, automatizaciones de marketing ni push como requisito de apertura. La confirmación manual existente es una excepción explícita; su lógica permanece congelada y no se añaden cobros reales ni pasarela.
 
 ### Alcance vertical obligatorio
 1. Alta/autenticación y autorización por rol/organización.
@@ -149,3 +149,31 @@ Priorizar con evidencia y frecuencia de problemas:
 7. Revisión de apertura con operaciones; abrir únicamente si el checklist está aprobado.
 
 **Estado inicial al crear este documento:** pendiente de verificación. Este documento define el estándar; no afirma que las funciones, pruebas, dispositivos, respaldos ni controles estén ya implementados o aprobados.
+
+
+## Implementación de decisiones D0 — rama aislada (23 de octubre de 2026)
+
+El usuario indicó implementar las alternativas seleccionadas en la rama `implementation/approved-directions-2026-10-23`; los cambios no se han fusionado a `main`.
+
+- **D0-01 A:** se conserva confirmación manual y cierre existentes; PAY no se modifica.
+- **D0-02 B:** separación de roles ADMIN, OPERATOR, FINANCE, AUDITOR y BOARD; consulta de auditoría scoped por organización y resumen agregado de dirección.
+- **D0-03 A:** alta interna; el conductor permanece OFFLINE y el vehículo INACTIVE hasta completar la validación configurada. Si no existen tipos documentales requeridos en configuration, la activación falla cerrada.
+- **D0-04 B:** actor de cancelación derivado del JWT, verificación de rol/participación/organización y motivo obligatorio; nuevo estado CANCELLED_BY_OPERATOR.
+- **D0-05 B:** alertas persistentes con acuse, escalamiento y cierre auditados. Sin temporizador ni integración externa hasta decisión operativa.
+- **D0-06 A y D0-07 B:** zona, horario, plataformas, grupo nominal, titulares, suplentes y tiempos de escalamiento no se inventan y siguen bloqueando el go/no-go.
+
+La migración SQL se preparó pero no se ejecutó. Build, pruebas, validación OpenAPI y E2E no se han ejecutado en esta sesión.
+
+
+## Controles adicionales de D0-03 y estado de verificación
+
+
+- **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
+- **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
+
+
+## Evidencia CI y cierre actual del Paso 0 — 24 de octubre de 2026 UTC
+
+El alcance y las alternativas D0-01 a D0-07 están registrados y sus cambios principales se implementaron en la rama `implementation/approved-directions-2026-10-23`. La ejecución [GitHub Actions #40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361) aprobó instalación limpia, build, 6 suites/12 unit tests y lint OpenAPI.
+
+**No está autorizado el piloto todavía.** El workflow global quedó rojo por 11 vulnerabilidades de producción reportadas por npm (4 altas, 7 moderadas, 0 críticas). No se forzó una migración mayor automáticamente; se requiere una actualización de framework/dependencias y regresión. Además, operaciones debe fijar el polígono/horario, grupo/dispositivos, responsables/suplentes y protocolo real de escalamiento. Las pruebas E2E, restauración de backup y migración de ensayo siguen pendientes.
