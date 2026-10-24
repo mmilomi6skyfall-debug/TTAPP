@@ -1,6 +1,6 @@
 import { Controller, Get, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import request from 'supertest';
+import request = require('supertest');
 
 @Controller()
 class E2EProbeController {
