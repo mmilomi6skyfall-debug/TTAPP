@@ -4,7 +4,9 @@
 //
 // Uso: npm run seed  (usa .env.development por defecto; NODE_ENV=test npm run seed para otro ambiente)
 import * as dotenv from 'dotenv';
+import { assertSeedEnvironment, requireSeedAdminCredentials } from './seed-safety';
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
+assertSeedEnvironment(process.env);
 
 import { Client } from 'pg';
 import * as bcrypt from 'bcrypt';
@@ -29,13 +31,10 @@ const ROLES: Record<string, string[]> = {
   PASSENGER: [],
 };
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@piloto.mx';
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = requireSeedAdminCredentials(process.env);
 
 async function main() {
-  if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 16) {
-    throw new Error('Define SEED_ADMIN_PASSWORD con al menos 16 caracteres antes de ejecutar npm run seed.');
-  }
+  
   const client = new Client({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
@@ -101,7 +100,7 @@ async function main() {
        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
       [organizationId, roleIds.ADMIN, ADMIN_EMAIL, passwordHash],
     );
-    console.log('usuario admin listo; la contraseña no se registra en logs.');
+    console.log('Seed admin processed; credential values omitted from logs.');
 
     await client.query('COMMIT');
   } catch (err) {

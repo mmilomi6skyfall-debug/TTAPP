@@ -9,7 +9,9 @@
 //
 // Uso: npm run seed:pilot-data  (requiere haber corrido `npm run seed` antes)
 import * as dotenv from 'dotenv';
+import { assertSeedEnvironment } from './seed-safety';
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
+assertSeedEnvironment(process.env, { allowPlaceholderData: true });
 
 import { Client } from 'pg';
 
