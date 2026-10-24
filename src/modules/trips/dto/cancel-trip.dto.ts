@@ -1,9 +1,9 @@
-import { IsIn, IsString } from 'class-validator';
+import { IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CancelTripDto {
-  @IsIn(['PASSENGER', 'DRIVER', 'SYSTEM'])
-  cancelledBy: 'PASSENGER' | 'DRIVER' | 'SYSTEM';
-
+  // El actor de cancelación se deriva del JWT, no del cliente.
   @IsString()
+  @MinLength(3)
+  @MaxLength(500)
   reason: string;
 }

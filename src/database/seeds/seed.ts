@@ -4,44 +4,37 @@
 //
 // Uso: npm run seed  (usa .env.development por defecto; NODE_ENV=test npm run seed para otro ambiente)
 import * as dotenv from 'dotenv';
+import { assertSeedEnvironment, requireSeedAdminCredentials } from './seed-safety';
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
+assertSeedEnvironment(process.env);
 
 import { Client } from 'pg';
 import * as bcrypt from 'bcrypt';
 
 const PERMISSIONS = [
-  'trips.view',
-  'trips.manage',
-  'trips.review',
-  'dispatch.manual_assign',
-  'dispatch.offers.view',
-  'dispatch.candidates.view',
-  'fares.edit',
-  'fares.publish',
-  'drivers.manage',
-  'vehicles.manage',
-  'users.manage',
-  'finance.view',
-  'finance.reconcile',
-  'audit.view',
+  'trips.view', 'trips.manage', 'trips.review', 'trips.cancel',
+  'dispatch.manual_assign', 'dispatch.offers.view', 'dispatch.candidates.view',
+  'fares.edit', 'fares.publish', 'drivers.manage', 'vehicles.manage', 'users.manage',
+  'finance.view', 'finance.reconcile', 'audit.view', 'configuration.manage', 'panic.alerts.view',
+  'panic.alerts.manage', 'board.summary.view',
 ];
 
-// code -> lista de permisos. DRIVER y PASSENGER no necesitan permisos:
-// solo actuan sobre sus propios recursos, filtrado por su propio userId,
-// no por RBAC (ver PermissionsGuard: sin @RequirePermissions, alcanza con
-// estar autenticado).
+// Separación de privilegios. PASSENGER y DRIVER actúan sobre recursos propios;
+// ADMIN no hereda automáticamente acceso global a viajes, finanzas o auditoría.
 const ROLES: Record<string, string[]> = {
-  ADMIN: PERMISSIONS,
-  OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'dispatch.manual_assign', 'fares.edit'],
-  FINANCE: ['finance.view', 'finance.reconcile', 'trips.view'],
-  DRIVER: ['dispatch.offers.view', 'dispatch.candidates.view'],
+  ADMIN: ['users.manage', 'drivers.manage', 'vehicles.manage', 'configuration.manage', 'fares.edit', 'fares.publish'],
+  OPERATOR: ['trips.view', 'trips.manage', 'trips.review', 'trips.cancel', 'dispatch.manual_assign', 'dispatch.candidates.view', 'fares.edit', 'panic.alerts.view', 'panic.alerts.manage'],
+  FINANCE: ['finance.view', 'finance.reconcile'],
+  AUDITOR: ['audit.view'],
+  BOARD: ['board.summary.view'],
+  DRIVER: ['dispatch.offers.view'],
   PASSENGER: [],
 };
 
-const ADMIN_EMAIL = 'admin@piloto.mx';
-const ADMIN_PASSWORD = 'Admin123!'; // SOLO para el piloto en desarrollo — cambiar en produccion
+const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = requireSeedAdminCredentials(process.env);
 
 async function main() {
+  
   const client = new Client({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
@@ -107,7 +100,7 @@ async function main() {
        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
       [organizationId, roleIds.ADMIN, ADMIN_EMAIL, passwordHash],
     );
-    console.log(`usuario admin listo: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+    console.log('Seed admin processed; credential values omitted from logs.');
 
     await client.query('COMMIT');
   } catch (err) {
