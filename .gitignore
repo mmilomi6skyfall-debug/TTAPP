@@ -7,14 +7,11 @@ coverage/
 **/coverage/
 *.log
 
-# Environment files
+# Environment files (only the non-secret template belongs in Git)
 .env
 .env.*
 !.env.example
-.env.development
-.env.test
-.env.staging
-.env.production
+.env.*.local
 
 # OS/editor
 .DS_Store

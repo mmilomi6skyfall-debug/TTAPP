@@ -357,3 +357,16 @@ Esa decisión determina cómo se resuelven los cuatro puntos pendientes de
 la tabla de arriba — no tiene sentido elegir un mecanismo de respaldos o
 de rollback en abstracto, sin saber contra qué infraestructura real se
 va a aplicar.
+
+
+---
+
+## Addendum de implementación D0 — 23 de octubre de 2026
+
+- Se conserva la confirmación manual de cobro existente y el cierre del viaje; la lógica PAY no se modifica ni se añade pasarela/cobro real.
+- Se separan roles ADMIN, OPERATOR, FINANCE, AUDITOR y BOARD con mínimos privilegios.
+- Las altas son internas; documentos se registran como referencias y requieren verificación humana. Si no se configuran los tipos documentales requeridos, el conductor/vehículo no se habilita.
+- La cancelación deriva el actor del JWT y valida rol, participación, organización y motivo; se añade CANCELLED_BY_OPERATOR.
+- Se crea flujo trazable de pánico con acuse/escalamiento/cierre, sin temporizador o integración externa no aprobados.
+- Sigue pendiente definir polígono, horario, plataformas/dispositivos, grupo nominal y responsables humanos.
+- La implementación está en rama aislada. Migración, build, pruebas y E2E no se han ejecutado.

@@ -1,0 +1,75 @@
+name: Repository quality gates
+
+on:
+  push:
+    branches: [implementation/approved-directions-2026-10-23, security/production-dependency-remediation-2026-10-23]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'db/**'
+      - 'api/openapi.yaml'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.gitignore'
+      - 'README.md'
+      - '.eslintrc.cjs'
+      - '.github/workflows/step0-validation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ttapp-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Install, lint, build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install from committed lockfile
+        run: npm ci
+      - name: Lint TypeScript
+        run: npm run lint
+      - name: Build NestJS
+        run: npm run build
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Isolated E2E smoke test
+        run: npm run test:e2e
+      - name: Validate OpenAPI
+        run: npm run lint:openapi
+
+  security-audit:
+    name: Dependency advisories (gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install from committed lockfile
+        run: npm ci
+      - name: Audit production dependencies
+        run: |
+          npm audit --omit=dev --json > npm-audit-production.json || audit_status=$?
+          cat npm-audit-production.json
+          exit ${audit_status:-0}
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dependency-audit
+          path: npm-audit-production.json
+          if-no-files-found: ignore
+          retention-days: 7

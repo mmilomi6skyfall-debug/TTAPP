@@ -1,11 +1,11 @@
 # Registro de decisiones — Paso 0 del MVP TTAPP
 
-**Estado:** se recibieron selecciones del usuario para revisión; aprobación explícita del gate pendiente. Las selecciones aún no se consideran decisiones finales aprobadas.  
+**Estado:** las selecciones D0-01 a D0-07 fueron elegidas por el usuario y su implementación fue autorizada en la rama aislada. El cierre técnico del Paso 0 se registra en `docs/06-cierre-paso0.md`; el go/no-go del piloto sigue sujeto a evidencia.  
 **Fecha de revisión:** 23 de octubre de 2026.  
 **Base remota revisada:** rama main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04.  
 **Alcance de este paso:** análisis y documentación únicamente. No se modificó código funcional, no se ejecutaron seeds ni migraciones, no se hizo despliegue y no se procesaron pagos.
 
-## Registro de respuesta del usuario — propuesta para revisión (23 de octubre de 2026)
+## Registro histórico de selección inicial (23 de octubre de 2026)
 
 El usuario remitió selecciones para revisión y pidió expresamente mantener bloqueado el Paso 1 hasta una aprobación explícita. Por tanto, las alternativas elegidas abajo se registran como **propuestas recibidas**, no como decisiones finales aprobadas.
 
@@ -19,7 +19,23 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 | D0-06 | **A — piloto pequeño, zona delimitada y turnos supervisados.** | Pendiente de aprobación del gate y de fijar polígono, días/horas, plataformas y versiones disponibles, lista nominal y tamaño del grupo. |
 | D0-07 | **B — responsables y suplentes por función, con una única autoridad go/no-go.** | Pendiente de aprobación del gate y de asignar titulares/suplentes, canal de soporte, responsable de incidentes y autoridad final. |
 
-**Estado global:** propuesta recibida; no equivale a aprobación final de negocio. **El Paso 1 permanece bloqueado.** No se modifica código funcional ni se ejecutan cambios de pagos, seeds, migraciones o despliegues como parte de este registro.
+**Estado histórico:** estas filas documentan las dudas iniciales, no el estado actual. La selección final para implementación y el gate vigente están recogidos en la sección siguiente. No se ejecutaron pagos, seeds, migraciones de base de datos ni despliegues.
+
+## Resolución del usuario — alternativas autorizadas para implementación (23 de octubre de 2026)
+
+La instrucción posterior **“realiza los cambios propuestos”** autoriza implementar D0-01 a D0-07 en una rama independiente. No autoriza abrir el piloto ni inventar parámetros que no se proporcionaron.
+
+| ID | Selección | Resolución implementada/pendiente |
+|---|---|---|
+| D0-01 | A — conservar confirmación manual | Se preserva PAY y no se añade pasarela ni cobro real. |
+| D0-02 | B — separar roles | Seed, consulta de auditoría por tenant y resumen agregado BOARD añadidos. |
+| D0-03 | A — alta interna controlada | API de altas, registro/verificación documental y bloqueo de activación sin listas de tipos configuradas. |
+| D0-04 | B — cancelación por rol/estado | Actor desde JWT, validación de organización/participación/permiso/motivo y CANCELLED_BY_OPERATOR. |
+| D0-05 | B — acuse/escalamiento/cierre de pánico | Entidad, persistencia, endpoints y auditoría; tiempos y responsables todavía pendientes. |
+| D0-06 | A — zona pequeña y turnos supervisados | Seleccionado; polígono, horario, plataformas y tamaño de grupo pendientes de definición. |
+| D0-07 | B — responsables/suplentes y una autoridad go/no-go | Seleccionado; faltan titulares, suplentes y canales nominales. |
+
+**Paso 1:** la especificación puede continuar en una rama separada después de crear un cierre verificable. El despliegue y la apertura del piloto permanecen bloqueados hasta que la CI, las decisiones operativas y las pruebas de integración/E2E tengan evidencia.
 
 ## 1. Cómo leer este registro
 
@@ -48,9 +64,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 - Técnica: el flujo actual deja el viaje en PAYMENT_PENDING al completarlo, por lo que no basta con ocultar un botón de interfaz. En una fase posterior habrá que separar el estado de servicio completado del proceso de cobro, sin modificar la lógica de pagos existente ni habilitar cobros reales. La ruta de confirmación actual no debe quedar expuesta accidentalmente como función activa del piloto.
 - Documentos/módulos afectados: documentos 02, 03 y 04; contratos de estado de viaje en OpenAPI y esquema; módulo trips para el límite operativo y la política de exposición de la ruta existente. El módulo payments/finance se conserva sin cambios funcionales.
 
-**Recomendación no aprobada:** B, porque coincide con la exclusión de pagos escrita en el plan 04 y evita ampliar el piloto. Antes de implementarla debe aprobarse el tratamiento del estado final del viaje y comprobarse que la ruta de pago no quede operativamente habilitada por accidente.
-
-**Decisión humana requerida:** A o B.
+**Resolución aplicada:** A, conservar la confirmación manual existente y su cierre actual, sin cambiar la lógica PAY ni integrar una pasarela. La ruta existente queda sujeta a revisión de permisos/regresión antes de apertura.
 
 ### D0-02 — ¿Quién puede ver viajes, información de operación y auditoría?
 
@@ -82,7 +96,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 | Finanzas | Sin despacho ni seguimiento GPS en vivo; acceso a la referencia del viaje cuando sea indispensable para conciliación | Solo evidencia pertinente para conciliación/autorización | Pagos declarados, comisiones y liquidaciones según permiso |
 | Mesa directiva | Métricas agregadas y alertas de operación; acceso a un viaje individual solo con motivo y autorización | Resumen de controles o informe autorizado; no acceso irrestricto por ser dirección | Resumen financiero agregado; datos detallados según autorización explícita |
 
-**Recomendación no aprobada:** B. En particular, separar el rol AUDITOR de las funciones administrativas, limitar FINANCE a su propósito y dar a mesa directiva reportes agregados, no acceso completo a ubicaciones y expedientes por defecto.
+**Alternativa B implementada en esta rama:** separar AUDITOR de administración, limitar FINANCE y exponer a BOARD un resumen agregado, no acceso irrestricto a ubicación o expedientes.
 
 **Decisión humana requerida:** aprobar, ajustar o rechazar la matriz; indicar si la nomenclatura será AUDITOR y BOARD/MESA_DIRECTIVA; nombrar quién autoriza accesos excepcionales.
 
@@ -112,7 +126,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 
 **Definición que debe aprobarse para “validado”:** propuesta mínima para debatir: pasajero con perfil/contacto requerido completos; conductor con identidad/licencia y documentos requeridos revisados y vigentes; vehículo con documentos requeridos revisados y vigentes, estado operativo permitido y asociación activa a un conductor; cuenta activa en la organización del piloto; aprobación registrada por un responsable. Los tipos documentales exactos, la comprobación de identidad/contacto y el responsable de cada verificación siguen pendientes.
 
-**Recomendación no aprobada:** A para el grupo cerrado inicial, con procedimiento de alta controlado y auditable, sin registro público. Si la operación exige que el personal cree y valide registros desde la interfaz, preferir C antes de la apertura. No considerar un perfil existente o un documento subido como “validado” automáticamente.
+**Alternativa A implementada en esta rama:** alta interna y auditable sin auto-registro público. Un documento registrado no se considera verificado; faltan los tipos documentales requeridos que operaciones debe configurar.
 
 **Decisión humana requerida:** A, B o C; lista exacta de documentos y criterios de vigencia; responsable que aprueba; tratamiento de rechazo, expiración, suspensión y cambio de vehículo.
 
@@ -136,7 +150,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 
 **Límite posterior al inicio:** decidir si se prohíbe la cancelación normal después de TRIP_IN_PROGRESS y se usa un flujo separado de incidente/disputa, o si existe una excepción de seguridad controlada. El código y la especificación actual describen que un viaje iniciado no se cancela mediante este endpoint.
 
-**Recomendación no aprobada:** B. Como punto de partida, pasajero hasta antes de llegada del conductor, conductor solo para su asignación antes de iniciar y despacho para los casos previos al inicio; el backend debe verificar participante, rol, estado, organización y motivo. Los límites definitivos requieren aprobación.
+**Alternativa B implementada en esta rama:** actor derivado del JWT, participación, rol, organización, estados previos al inicio y motivo comprobados. No se añade penalización o excepción no documentada.
 
 **Decisión humana requerida:** aprobar límites exactos por rol/estado, catálogo de motivos, si se penalizan cancelaciones y quién puede resolver excepciones.
 
@@ -166,7 +180,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 
 **Propuesta de protocolo para debatir:** B. Acuse por el operador; si no hay acuse dentro del umbral aprobado, escalamiento al supervisor de turno; intento de contacto con la persona y registro del resultado; cierre por responsable autorizado con motivo obligatorio y rastro de auditoría. El responsable humano decidirá si contacta servicios públicos de emergencia. No realizar llamadas automáticas ni prometer respuesta de emergencia sin una integración y operación aprobadas.
 
-**Recomendación no aprobada:** B, con tiempos de acuse/escalamiento que se deben acordar y ensayar antes del piloto. No se proponen umbrales como requisito hasta que operaciones los apruebe.
+**Alternativa B implementada en esta rama:** estado persistente, acuse, escalamiento y cierre auditado; tiempos/responsables siguen pendientes y no se inventan temporizadores.
 
 **Decisión humana requerida:** responsables primario y suplente; tiempos de acuse/escalamiento; canal de contacto; criterio de cierre; contacto con emergencia externa; retención y visibilidad de ubicación/datos sensibles.
 
@@ -193,7 +207,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 - Apps nativas o cliente móvil existente para el conductor: puede facilitar GPS persistente, pero necesita artefactos reales, versiones y dispositivos verificables.
 - Operación temporal más supervisada con despacho manual: reduce dependencias de automatización, pero no sustituye las pruebas de GPS y asignación exigidas si esas funciones son parte del piloto.
 
-**Recomendación no aprobada:** A, con zona delimitada y horarios definidos; panel de despacho web y una plataforma de conductor previamente inventariada y probada en dispositivos físicos. La decisión PWA frente a app nativa depende de qué artefacto existe de verdad y de la prueba de GPS en segundo plano, no de asumir que la interfaz ya está terminada.
+**Alternativa A seleccionada:** piloto pequeño, zona delimitada y turnos supervisados. Polígono, horario, dispositivos, plataforma, y grupo nominal continúan pendientes de definición operativa.
 
 **Propuesta de tamaño inicial no aprobada:** 5–10 conductores y 10–20 pasajeros conocidos, con un operador por turno y lista nominal; es una propuesta conservadora para discutir, no sustituye el rango histórico de 50–100 unidades ni lo cambia silenciosamente.
 
@@ -219,7 +233,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 - Técnica: el checklist incluye nombre/función, evidencia, fecha y aprobación de cada dueño; un bloqueo P0/P1 pendiente implica no abrir.
 - Documentos afectados: documentos 03 y 04, registro de incidentes, permisos RBAC, runbook y checklist de evidencia.
 
-**Recomendación no aprobada:** B. La mesa directiva puede designar al responsable final de go/no-go, pero esa autoridad no implica acceso irrestricto a viajes o ubicaciones; los permisos se rigen por la decisión D0-02.
+**Alternativa B seleccionada:** responsables y suplentes por función y una autoridad final de go/no-go; faltan nombres/titulares, canales y turnos concretos. BOARD no recibe acceso irrestricto.
 
 **Decisión humana requerida:** asignar nombre o titular del puesto, suplente, horario de cobertura, canal de soporte, responsable de incidentes y autoridad final para cada función.
 
@@ -249,4 +263,18 @@ Antes de autorizar el Paso 1 deben registrarse:
 4. las pruebas de autorización, aislamiento por organización, cancelación y pánico que demostrarán cada cambio;
 5. la evidencia de ejecución y la revisión del checklist go/no-go.
 
-**Estado de cierre del Paso 0:** documentación de decisiones preparada en esta rama; aprobación humana pendiente; Paso 1 bloqueado.
+**Estado del Paso 0:** decisiones de alcance y criterios cerradas; build/unit tests/OpenAPI validados por CI. El go/no-go del piloto sigue bloqueado por auditoría de producción (11 hallazgos: 4 altos, 7 moderados), E2E, migración y datos operativos reales.
+
+
+## Control de activación después de un viaje
+
+
+- **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
+- **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
+
+
+## Evidencia final de CI y seguridad — 24 de octubre de 2026 UTC
+
+La ejecución [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361) aprobó `npm ci`, `npm run build`, seis suites Jest (12 pruebas) y lint OpenAPI. El workflow global permanece rojo porque la auditoría de producción reporta 11 vulnerabilidades (4 altas, 7 moderadas y 0 críticas); consulte el [reporte](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361/artifacts/12541403847). Las actualizaciones que eliminan los hallazgos altos restantes requieren una migración controlada de NestJS, no `npm audit fix --force`.
+
+Esto cierra el registro de decisión/alcance del Paso 0, pero **no** aprueba la seguridad productiva ni el inicio de viajes reales. La zona/horario, grupo, dispositivos y titulares/suplentes deben quedar asentados con datos reales antes del go/no-go. E2E, backup/restore, migración en entorno aislado y validación humana siguen pendientes.
