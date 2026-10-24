@@ -824,3 +824,15 @@ psql -d taxi_pilot_dev -c "SELECT gross_amount, commission_amount, driver_earnin
 - **Reintento en segundo plano** cuando `startDispatch` no encuentra
   candidatos — por ahora requiere una llamada manual nueva (del
   pasajero, un refresh, o del operador).
+
+
+---
+
+## Addendum de autorización D0-04 — 23 de octubre de 2026
+
+La política seleccionada sustituye el uso original de `dto.cancelledBy`: el cuerpo de cancelación ahora contiene solo `reason` (3–500 caracteres) y el servidor deriva el actor desde el JWT. PASSENGER solo cancela sus viajes; DRIVER solo el viaje asignado; OPERATOR requiere `trips.cancel`; las mutaciones quedan dentro de la organización y de la ventana de estados previa al inicio descrita en este Paso 7. Se añade `CANCELLED_BY_OPERATOR` a enum, esquema, contrato y migración. La lógica de pagos permanece sin cambio. El código y las pruebas agregadas viven en una rama separada; las pruebas no se han ejecutado.
+
+
+## Reingreso a AVAILABLE condicionado por D0-03
+
+La regla histórica de liberar al conductor al completar/cancelar se precisa para la implementación seleccionada: el backend verifica que exista asignación activa a vehículo activo de la organización y que conductor/vehículo tengan todos los tipos documentales configurados verificados y vigentes. Si la política documental no está configurada o no se cumple, el conductor pasa a `OFFLINE`, no a `AVAILABLE`. La llamada posterior a activar disponibilidad vuelve a validar los mismos requisitos. Los tipos documentales concretos los debe configurar operación; no se inventan en el código.

@@ -9,6 +9,9 @@ export class AuditLog {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
+  @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+  organizationId: string | null;
+
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'actor_user_id' })
   actorUser: User | null;

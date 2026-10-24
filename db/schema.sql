@@ -118,7 +118,7 @@ CREATE TABLE vehicles (
     model           TEXT,
     year            INT,
     vehicle_type    TEXT NOT NULL DEFAULT 'STANDARD',  -- usado en el filtro de compatibilidad DSP
-    status          vehicle_status NOT NULL DEFAULT 'ACTIVE',
+    status          vehicle_status NOT NULL DEFAULT 'INACTIVE',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -247,7 +247,7 @@ CREATE TYPE trip_status AS ENUM (
     'REQUESTED', 'PENDING_REVIEW', 'QUOTED', 'SEARCHING_DRIVER', 'DRIVER_ASSIGNED', 'DRIVER_EN_ROUTE',
     'DRIVER_ARRIVED', 'TRIP_STARTED', 'TRIP_IN_PROGRESS', 'TRIP_COMPLETED',
     'PAYMENT_PENDING', 'PAYMENT_CONFIRMED', 'CLOSED',
-    'CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER', 'CANCELLED_BY_SYSTEM',
+    'CANCELLED_BY_PASSENGER', 'CANCELLED_BY_DRIVER', 'CANCELLED_BY_OPERATOR', 'CANCELLED_BY_SYSTEM',
     'NO_SHOW', 'DISPUTED'
 );
 
@@ -432,6 +432,7 @@ CREATE TABLE configuration (
 -- valor anterior, valor nuevo, por qué. Tabla append-only, nunca se edita ni se borra.
 CREATE TABLE audit_logs (
     id             BIGSERIAL PRIMARY KEY,
+    organization_id UUID REFERENCES organizations(id),
     actor_user_id  UUID REFERENCES users(id),
     action         TEXT NOT NULL,
     entity         TEXT NOT NULL,
@@ -443,3 +444,30 @@ CREATE TABLE audit_logs (
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_audit_logs_entity ON audit_logs (entity, entity_id);
+
+-- Alertas persistentes y auditables del botón de pánico.
+CREATE TABLE panic_alerts (
+ id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ organization_id UUID NOT NULL REFERENCES organizations(id),
+ trip_id UUID NOT NULL REFERENCES trips(id),
+ triggered_by UUID NOT NULL REFERENCES users(id),
+ actor_type TEXT NOT NULL CHECK (actor_type IN ('PASSENGER','DRIVER')),
+ status TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN','ACKNOWLEDGED','ESCALATED','CLOSED')),
+ location GEOGRAPHY(POINT,4326),
+ location_recorded_at TIMESTAMPTZ,
+ location_accuracy_m NUMERIC(8,2),
+ acknowledged_by UUID REFERENCES users(id),
+ acknowledged_at TIMESTAMPTZ,
+ escalated_by UUID REFERENCES users(id),
+ escalated_at TIMESTAMPTZ,
+ escalation_note TEXT,
+ closed_by UUID REFERENCES users(id),
+ closed_at TIMESTAMPTZ,
+ closure_note TEXT,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_panic_alerts_org_status_time ON panic_alerts (organization_id,status,created_at DESC);
+CREATE INDEX idx_panic_alerts_trip ON panic_alerts (trip_id);
+CREATE INDEX idx_audit_logs_org_id ON audit_logs (organization_id,id DESC);
+
