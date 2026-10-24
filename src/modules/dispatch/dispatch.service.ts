@@ -209,7 +209,7 @@ export class DispatchService {
     const eligible = await this.dataSource.query(
       `SELECT dp.user_id
        FROM driver_profiles dp
-       JOIN users u ON u.id = dp.user_id AND u.organization_id = $3
+       JOIN users u ON u.id = dp.user_id AND u.organization_id = $3 AND u.status = 'ACTIVE'
        JOIN driver_vehicle_assignments a ON a.driver_id = dp.user_id AND a.vehicle_id = $2 AND a.active = true
        JOIN vehicles v ON v.id = a.vehicle_id AND v.organization_id = $3 AND v.status = 'ACTIVE'
        WHERE dp.user_id = $1 AND dp.status = 'AVAILABLE'
