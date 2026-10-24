@@ -263,7 +263,7 @@ Antes de autorizar el Paso 1 deben registrarse:
 4. las pruebas de autorización, aislamiento por organización, cancelación y pánico que demostrarán cada cambio;
 5. la evidencia de ejecución y la revisión del checklist go/no-go.
 
-**Estado del Paso 0:** alternativas autorizadas para implementación y cambios documentales/código en rama aislada; configuración, pruebas, migración y detalles operativos pendientes. Paso 1 y go/no-go siguen bloqueados.
+**Estado del Paso 0:** decisiones de alcance y criterios cerradas; build/unit tests/OpenAPI validados por CI. El go/no-go del piloto sigue bloqueado por auditoría de producción (11 hallazgos: 4 altos, 7 moderados), E2E, migración y datos operativos reales.
 
 
 ## Control de activación después de un viaje
@@ -271,3 +271,10 @@ Antes de autorizar el Paso 1 deben registrarse:
 
 - **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
 - **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
+
+
+## Evidencia final de CI y seguridad — 24 de octubre de 2026 UTC
+
+La ejecución [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361) aprobó `npm ci`, `npm run build`, seis suites Jest (12 pruebas) y lint OpenAPI. El workflow global permanece rojo porque la auditoría de producción reporta 11 vulnerabilidades (4 altas, 7 moderadas y 0 críticas); consulte el [reporte](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361/artifacts/12541403847). Las actualizaciones que eliminan los hallazgos altos restantes requieren una migración controlada de NestJS, no `npm audit fix --force`.
+
+Esto cierra el registro de decisión/alcance del Paso 0, pero **no** aprueba la seguridad productiva ni el inicio de viajes reales. La zona/horario, grupo, dispositivos y titulares/suplentes deben quedar asentados con datos reales antes del go/no-go. E2E, backup/restore, migración en entorno aislado y validación humana siguen pendientes.
