@@ -1,120 +1,44 @@
-# Backend del piloto — Sistema Integral de Gestión de Taxis
+# TTAPP — Backend del piloto cerrado
 
-Esqueleto NestJS (paso 5 del plan de ejecución), organizado en los módulos
-de dominio definidos en `docs/01-fundamentos-tecnicos.md`. Construido sobre
-`db/schema.sql` y el contrato `api/openapi.yaml`.
-
-## Estado verificado
-
-Este esqueleto fue compilado y arrancado en un entorno real durante su
-construcción: PostgreSQL 16 + PostGIS 3.4, Redis, y los 13 módulos de
-dominio cargando sin errores. La respuesta real obtenida de `/health`:
-
-```json
-{
-  "status": "ok",
-  "database": "connected",
-  "serverTime": "2026-09-10T03:42:29.586Z",
-  "postgis": "3.4 USE_GEOS=1 USE_PROJ=1 USE_STATS=1"
-}
-```
-
-**Paso 6 (auth + RBAC + auditoría) también verificado con peticiones HTTP
-reales**: login, JWT, permisos por rol (200 con permiso / 403 sin él) y
-auditoría automática de escrituras — ver la tabla de pruebas en
-`docs/01-fundamentos-tecnicos.md`.
-
-Lo que **no** está probado todavía: no hay lógica de negocio de viajes
-(eso es el paso 7 — el flujo vertical completo).
-
-### Probarlo tú mismo
-
-```bash
-npm run seed   # crea org + roles + permisos + usuario admin@piloto.mx / Admin123!
-npm run start:dev
-
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@piloto.mx","password":"Admin123!"}'
-# copiar el accessToken de la respuesta
-
-curl http://localhost:3000/users/me -H "Authorization: Bearer TOKEN_AQUI"
-```
+Backend NestJS 10. Este documento describe herramientas reproducibles; no implica autorización de despliegue ni que el E2E de negocio esté completo.
 
 ## Requisitos
+- Node.js 20 LTS o 22 LTS y npm compatible.
+- PostgreSQL 16 + PostGIS y Redis para ejecutar la API integrada.
+- Unit tests, lint y smoke E2E aislado no requieren servicios externos.
 
-- Node.js 20+
-- PostgreSQL 16 con la extensión PostGIS
-- Redis
-
-## Arranque local
-
+## Instalación y gates
 ```bash
-# 1. Instalar dependencias
-npm install --legacy-peer-deps
-
-# 2. Crear la base de datos y aplicar el esquema (una sola vez)
-createdb taxi_pilot_dev
-psql -d taxi_pilot_dev -f db/schema.sql
-psql -d taxi_pilot_dev -f ../db/schema.sql
-
-# 3. Variables de entorno: ya viene .env.development listo para desarrollo
-#    local (ajustar si tu Postgres/Redis usan otras credenciales)
-
-# 4. Arrancar
-npm run start:dev
+npm ci
+npm run build
+npm run lint
+npm run test:unit
+npm run test:e2e
+npm run lint:openapi
+npm audit
+npm audit --omit=dev
 ```
+- `npm ci` instala desde `package-lock.json`; no usar `npm install --legacy-peer-deps` en CI.
+- `npm run lint` no modifica archivos; `npm run lint:fix` sí los reescribe.
+- `npm run test:e2e` es un smoke test HTTP aislado Nest/Supertest, no E2E de viaje con PostgreSQL/PostGIS, Redis y dispositivos.
+- `npm run lint:openapi` valida `api/openapi.yaml` con Redocly.
+- Revisar advisories de npm; no ejecutar `npm audit fix --force`. Cambios mayores requieren revisión de compatibilidad, build y regresión.
 
-`GET /health` debe responder `status: ok` con la versión de PostGIS si
-todo quedó bien conectado.
+## Variables de entorno y secretos
+1. Copia `.env.example` a `.env.development` localmente y reemplaza marcadores por valores locales.
+2. Inyecta secretos de staging/producción desde el gestor de secretos de la plataforma; no los guardes en Git, issues ni logs.
+3. Variables principales: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE`, `REDIS_HOST`, `REDIS_PORT`, `JWT_SECRET`; el seed requiere además `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD`.
+4. No se ha confirmado rotación de secretos históricos. Si un valor real estuvo en Git, el responsable debe rotarlo y revisar el historial.
 
-## Estructura
+Los archivos reales `.env.development`, `.env.test`, `.env.staging` y `.env.production` figuran como rastreados en esta rama. El ignore no deja de rastrear archivos ya versionados. Esta sesión no puede comprobar cambios locales sin confirmar, por lo que no los elimina automáticamente. Después de revisar `git status --short -- .env*` y preservar cualquier cambio, ejecuta `bash scripts/untrack-env-files.sh` en un checkout local. El script aborta si detecta cambios staged/unstaged y usa `git rm --cached` para conservar las copias locales. Revisa el diff antes de confirmar. Mantén `.env.example` como plantilla sin secretos.
 
-```
-src/
-  main.ts                   # bootstrap, ValidationPipe global, CORS
-  app.module.ts              # une config + database + redis + los 13 módulos
-  config/env.validation.ts   # la app NO arranca si falta una env var crítica
-  database/                  # conexión TypeORM a Postgres (synchronize:false —
-                              # el esquema SIEMPRE se gestiona vía db/schema.sql)
-  redis/                     # cliente Redis global (cache, GPS, sesiones)
-  common/enums/               # enums que reflejan 1:1 los tipos de db/schema.sql
-  modules/
-    auth/          # AUTH — esqueleto, se implementa en el paso 6
-    users/         # organizations, branches, roles, permissions, users
-    passengers/    # PAS
-    drivers/       # DRV
-    vehicles/      # VEH
-    gps/           # GPS — posición actual + histórico
-    fares/         # FAR — zonas, tarifas por categoría, horario nocturno
-    trips/         # TRP — núcleo del sistema
-    dispatch/      # DSP — sin entidades propias, opera sobre trips/drivers/gps
-    payments/      # PAY — confirmación de cobro (efectivo/terminal)
-    finance/       # FIN — comisiones como deuda, liquidaciones
-    ratings/       # RAT
-    notifications/ # NTF
-    audit/         # AUD — global, cualquier módulo puede inyectarlo
-    configuration/ # parámetros configurables (gps.interval_seconds, etc.)
-    health/        # healthcheck real contra la base de datos
-```
+## Seeds locales únicamente
+- `npm run seed`: requiere `NODE_ENV=development` o `test`, correo explícito y contraseña de al menos 16 caracteres no placeholder.
+- `npm run seed:pilot-data`: usa tarifas/zona de ejemplo y requiere `NODE_ENV=development` y `SEED_ALLOW_PLACEHOLDER_DATA=true`.
+- Ambos bloquean staging/producción. No ejecutar seeds en bases compartidas o reales; las guardas no sustituyen permisos de DB.
 
-## Ambientes
+## Arranque
+Configura variables locales y prepara manualmente una base desechable antes de `npm run start:dev`. TypeORM debe mantener `synchronize: false`; no se ejecutaron seeds ni migraciones en este paso.
 
-Cuatro archivos de entorno, uno por ambiente (`docs/01-fundamentos-tecnicos.md`
-Paso 5): `.env.development`, `.env.test`, `.env.staging`, `.env.production`.
-Los dos últimos son plantillas — sus valores reales deben venir de un
-gestor de secretos, nunca commitearse.
-
-## Desarrollo local sin Docker
-
-Si no tienes Postgres/Redis corriendo como servicios del sistema:
-
-```bash
-bash scripts/start-dev-services.sh
-```
-
-## Próximo paso
-
-Paso 6: implementar auth (JWT), permisos por rol, y el interceptor de
-auditoría — el núcleo transversal del que dependen todos los demás
-módulos, antes de escribir la primera funcionalidad vertical de negocio.
+## CI y alcance
+CI debe ejecutar instalación desde lockfile, build, lint, unit tests, smoke E2E aislado, OpenAPI y auditoría de dependencias. Un gate de seguridad fallido debe permanecer visible. Esta fase estabiliza herramientas y configuración; no implementa negocio, no modifica pagos y no autoriza el piloto.
