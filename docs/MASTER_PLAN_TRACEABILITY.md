@@ -98,10 +98,13 @@ Run: [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/4
 El gate de dependencias no se oculta: los fixes restantes indican actualización mayor de componentes NestJS. No se forzó el cambio de mayor; requiere una rama de actualización de framework y regresión técnica. El Paso 0 se cierra para alcance y criterios, no para apertura productiva.
 
 
-## Paso 1 — estabilización de repositorio y calidad (en curso)
+## Paso 1 — estabilización de repositorio y calidad (validación técnica completada; seguridad y secretos pendientes)
 
 - Inspección remota: existen seis archivos unitarios `.spec.ts`; no existía `test/jest-e2e.json`; ESLint no estaba declarado y OpenAPI no tenía script npm.
 - Se añaden scripts separados de lint sin autofix, unit tests, smoke E2E aislado y validación OpenAPI.
 - Se incorporan guardas unit-testables para seeds: credenciales administrativas explícitas sin valores de ejemplo; datos piloto placeholder solo en desarrollo con opt-in explícito; bloqueo de staging/producción.
 - Los archivos reales `.env.*` están rastreados. Se ajusta ignore y se documenta un script que revisa diffs staged/unstaged antes de `git rm --cached`. La retirada efectiva queda pendiente de ejecutar la comprobación en el checkout local, cuyo estado no está disponible por la API remota.
-- Pendiente de CI: `npm ci`, build, lint, unit tests, smoke E2E, OpenAPI y auditoría npm. No se ejecutaron seeds, migraciones ni despliegues.
+- Evidencia CI: run [40054681906](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40054681906) terminó con job de calidad SUCCESS: `npm ci`, lint, build, 7 suites/17 pruebas unitarias, smoke E2E aislado y lint OpenAPI pasaron. El job de auditoría de producción terminó FAILURE y subió el reporte; no se ocultó el bloqueo.
+- Auditoría en instalación: 24 vulnerabilidades totales (3 bajas, 13 moderadas, 8 altas); producción: 11 (7 moderadas, 4 altas, 0 críticas). Se identifican avisos relacionados con `multer` y `@nestjs/platform-express` y dependencias transitivas. No se aplicó `npm audit fix --force` ni una actualización mayor.
+- La configuración E2E inicial se corrigió tras un fallo real: Jest requiere JSON válido y Supertest se importa como CommonJS en este proyecto; el run final pasó.
+- La retirada efectiva de `.env.development`, `.env.test`, `.env.staging` y `.env.production` del índice sigue pendiente de ejecutar `scripts/untrack-env-files.sh` en el checkout local tras comprobar `git status`. No se afirma rotación de secretos. No se ejecutaron seeds, migraciones ni despliegues.
