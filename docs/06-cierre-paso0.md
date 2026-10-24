@@ -12,7 +12,7 @@
 | D0-01 | Conservar confirmación manual en efectivo o terminal propia del conductor y el cierre actual. Sin pasarela ni nuevos cobros reales. | Los cambios no modifican el módulo de pagos; los casos actuales de confirmación/cierre deben pasar regresión en CI/E2E. |
 | D0-02 | Separación de privilegios: ADMIN (cuentas/configuración), OPERATOR (despacho y viajes), FINANCE (conciliación), AUDITOR (lectura de bitácora/datos permitidos), BOARD (agregados), DRIVER y PASSENGER (sus recursos). | Una llamada de una organización no lee ni altera datos de otra; permisos mínimos y denegación por defecto en pruebas. |
 | D0-03 | Alta interna únicamente. Pasajero creado sin auto-registro público; conductor inicia OFFLINE; vehículo inicia INACTIVE. La verificación es humana y los tipos documentales requeridos proceden de configuración por organización. | Sin política documental configurada o sin documentos vigentes verificados, el conductor no queda AVAILABLE y el vehículo no pasa a ACTIVE. No se considera verificado el mero registro de una referencia documental. |
-| D0-04 | El actor de cancelación procede de JWT. Pasajero cancela solo su viaje; conductor, solo el asignado; operador requiere `trips.cancel`. Se valida organización, estado, motivo y liberación segura del conductor. | Pruebas positivas y negativas por rol, organización, estado y motivo; no existe campo `cancelledBy` confiado al cliente. |
+| D0-04 (revisada 24-oct) | Cualquier usuario autenticado puede cancelar un viaje de su organización antes del inicio. Actor desde JWT, motivo obligatorio, denegación cross-organization y liberación segura del conductor. | Pruebas de mismo tenant, tenant ajeno, estado posterior al inicio y spoofing del actor; no se confía en `cancelledBy`. |
 | D0-05 | El pánico genera registro persistente para pasajero o conductor asignado. Estados: OPEN → ACKNOWLEDGED → ESCALATED/CLOSED, con responsable, hora y notas auditadas. | La alerta y sus transiciones quedan persistidas; una alerta de otra organización no se consulta ni se modifica. No se afirma conexión a emergencias ni se automatiza un timeout no aprobado. |
 | D0-06 | Piloto supervisado en la cabecera urbana de Huauchinango, Puebla, en zona acotada. No se incluyen localidades exteriores al polígono operativo aprobado. | El polígono GIS, horarios y dispositivos reales deben cargarse y probarse antes del piloto; no se inventan coordenadas o turnos en el código. |
 | D0-07 | Responsabilidades funcionales: Operaciones mantiene turnos/despacho; supervisor de turno recibe/escalada pánico; Soporte gestiona incidencias de app/dispositivos; Auditoría revisa la bitácora; responsable técnico mantiene release/backups; Mesa Directiva nombra la autoridad única go/no-go. | Debe existir nombre y suplente por función, canal de contacto y disponibilidad por turno antes de activar el piloto. El rol BOARD no sustituye a la persona que firma la autorización. |
@@ -43,12 +43,13 @@
 
 | ID | Escenario | Resultado esperado |
 |---|---|---|
-| SEC-01 | Pasajero A consulta/cancela viaje de B o de otra organización | 403/404, sin mutación y sin exposición de datos. |
+| SEC-01 | Usuario de organización A consulta o intenta cancelar un viaje de organización B | 403/404, sin mutación y sin exposición de datos. |
 | SEC-02 | Conductor intenta modificar un viaje que no tiene asignado | Denegado; ningún estado cambia. |
 | RBAC-01 | BOARD intenta consultar viaje individual o log sin permiso | Denegado; solo recibe el endpoint agregado autorizado. |
 | ONB-01 | Alta de conductor sin tipos documentales configurados | Creación OFFLINE permitida; activación denegada. |
 | ONB-02 | Documento vencido/no verificado o vehículo no activo | Conductor no puede pasar a AVAILABLE. |
-| TRIP-01 | Cliente envía `cancelledBy=OPERATOR` en el cuerpo | Campo no aceptado/ignorado; actor determinado por JWT. |
+| TRIP-01 | Cliente envía `cancelledBy=OPERATOR` en el cuerpo | Campo no aceptado/ignorado; actor determinado por JWT y estado `CANCELLED_BY_USER`. |
+| TRIP-02 | Usuario autenticado de la misma organización cancela antes de `TRIP_IN_PROGRESS` | Permitido con motivo; usuario de otro tenant y cancelación posterior al inicio son denegados. |
 | PAY-01 | Confirmación manual y cierre existentes | Igual comportamiento que antes; ninguna pasarela nueva. |
 | PANIC-01 | Pasajero o conductor asignado activa pánico en viaje propio | Alerta persistida, actor correcto, hora/ubicación solo si son conocidas y disponibles. |
 | PANIC-02 | Usuario de otra organización lista o cierra alerta | Denegado. |
