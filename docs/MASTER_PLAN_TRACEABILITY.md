@@ -108,3 +108,26 @@ El gate de dependencias no se oculta: los fixes restantes indican actualización
 - Auditoría en instalación: 24 vulnerabilidades totales (3 bajas, 13 moderadas, 8 altas); producción: 11 (7 moderadas, 4 altas, 0 críticas). Se identifican avisos relacionados con `multer` y `@nestjs/platform-express` y dependencias transitivas. No se aplicó `npm audit fix --force` ni una actualización mayor.
 - La configuración E2E inicial se corrigió tras un fallo real: Jest requiere JSON válido y Supertest se importa como CommonJS en este proyecto; el run final pasó.
 - La retirada efectiva de `.env.development`, `.env.test`, `.env.staging` y `.env.production` del índice sigue pendiente de ejecutar `scripts/untrack-env-files.sh` en el checkout local tras comprobar `git status`. No se afirma rotación de secretos. No se ejecutaron seeds, migraciones ni despliegues.
+
+
+## Remediación de auditoría de producción — 24 de octubre de 2026
+
+Rama: `security/production-dependency-remediation-2026-10-23`  
+PR: [#3 — Security remediation: NestJS 11 and production dependency patches](https://github.com/mmilomi6skyfall-debug/TTAPP/pull/3)  
+CI: [run 40056220329](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40056220329)  
+Commit con lockfile regenerado: `d80e16ae4c93dd39ad841f06dc9282142e09b4fd`.
+
+| Control | Resultado verificado |
+|---|---|
+| Dependencias Nest | Actualización coordinada de NestJS 10 a la línea parcheada 11.2.x; paquetes relacionados actualizados a versiones compatibles de la misma línea |
+| Dependencias transitivas | Overrides para `body-parser`, `file-type`, `lodash`, `multer`, `qs` y `uuid`; lockfile generado por npm en runner limpio, no editado manualmente |
+| `npm ci` | PASS desde el lockfile comprometido |
+| Lint | PASS |
+| Build | PASS |
+| Pruebas unitarias | PASS |
+| Smoke E2E aislado | PASS; no sustituye E2E real con PostgreSQL/PostGIS/Redis ni dispositivos |
+| Validación OpenAPI | PASS |
+| `npm audit --omit=dev` | PASS — 0 vulnerabilidades (0 bajas, 0 moderadas, 0 altas, 0 críticas) |
+| Migraciones, seeds, despliegues | No ejecutados |
+
+El workflow temporal utilizado para generar el lockfile fue eliminado después de obtener el archivo generado. El workflow normal de calidad y seguridad quedó habilitado también para la rama de remediación. La actualización mayor de NestJS se hizo en una rama aislada y pasó las verificaciones automatizadas disponibles; sigue pendiente revisión humana del diff antes de fusionar. No se declara que la integración con servicios reales ni la apertura del piloto estén aprobadas.
