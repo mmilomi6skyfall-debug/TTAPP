@@ -96,3 +96,12 @@ Run: [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/4
 | Merge/despliegue | No realizados; PR sigue en borrador |
 
 El gate de dependencias no se oculta: los fixes restantes indican actualización mayor de componentes NestJS. No se forzó el cambio de mayor; requiere una rama de actualización de framework y regresión técnica. El Paso 0 se cierra para alcance y criterios, no para apertura productiva.
+
+
+## Paso 1 — estabilización de repositorio y calidad (en curso)
+
+- Inspección remota: existen seis archivos unitarios `.spec.ts`; no existía `test/jest-e2e.json`; ESLint no estaba declarado y OpenAPI no tenía script npm.
+- Se añaden scripts separados de lint sin autofix, unit tests, smoke E2E aislado y validación OpenAPI.
+- Se incorporan guardas unit-testables para seeds: credenciales administrativas explícitas sin valores de ejemplo; datos piloto placeholder solo en desarrollo con opt-in explícito; bloqueo de staging/producción.
+- Los archivos reales `.env.*` están rastreados. Se ajusta ignore y se documenta un script que revisa diffs staged/unstaged antes de `git rm --cached`. La retirada efectiva queda pendiente de ejecutar la comprobación en el checkout local, cuyo estado no está disponible por la API remota.
+- Pendiente de CI: `npm ci`, build, lint, unit tests, smoke E2E, OpenAPI y auditoría npm. No se ejecutaron seeds, migraciones ni despliegues.
