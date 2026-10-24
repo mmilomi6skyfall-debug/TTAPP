@@ -101,7 +101,7 @@ describe('DispatchService organization isolation', () => {
     offers.findOne.mockResolvedValue({
       id: 'offer-a',
       trip: { id: 'trip-b', organization: { id: 'org-b' }, status: TripStatus.QUOTED },
-      driver: { userId: 'driver-a', user: { organization: { id: 'org-a' } }, status: 'AVAILABLE' },
+      driver: { userId: 'driver-a', user: { status: 'ACTIVE', organization: { id: 'org-a' } }, status: 'AVAILABLE' },
       respondedAt: null,
     });
     await expect(service.respondToOffer('offer-a', 'ACCEPTED', {
@@ -116,7 +116,7 @@ describe('DispatchService organization isolation', () => {
     offers.findOne.mockResolvedValue({
       id: 'offer-a',
       trip: { id: 'trip-a', organization: { id: 'org-a' }, status: TripStatus.QUOTED },
-      driver: { userId: 'driver-a', user: { organization: { id: 'org-a' } }, status: 'AVAILABLE' },
+      driver: { userId: 'driver-a', user: { status: 'ACTIVE', organization: { id: 'org-a' } }, status: 'AVAILABLE' },
       respondedAt: null,
     });
     db.query.mockResolvedValueOnce([]);
