@@ -1,125 +1,71 @@
-name: Step 0 validation
+name: Repository quality gates
 
 on:
   push:
-    branches:
-      - implementation/approved-directions-2026-10-23
+    branches: [implementation/approved-directions-2026-10-23]
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'src/**'
+      - 'test/**'
       - 'db/**'
       - 'api/openapi.yaml'
       - 'package.json'
       - 'package-lock.json'
+      - '.gitignore'
+      - 'README.md'
+      - '.eslintrc.cjs'
       - '.github/workflows/step0-validation.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: step0-validation-${{ github.ref }}
+  group: ttapp-quality-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  backend:
-    name: Build and unit tests
-    permissions:
-      contents: write
+  quality:
+    name: Install, lint, build and tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Reconcile the legacy lockfile against package.json
-        run: npm install --package-lock-only --ignore-scripts
-
-      - name: Apply non-breaking security fixes to the dependency lock
-        continue-on-error: true
-        run: npm audit fix --package-lock-only --ignore-scripts
-
-      - name: Upload normalized lockfile for review
-        uses: actions/upload-artifact@v4
-        with:
-          name: normalized-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Install locked dependencies
+      - name: Install from committed lockfile
         run: npm ci
-
-      - name: Compile backend
+      - name: Lint TypeScript
+        run: npm run lint
+      - name: Build NestJS
         run: npm run build
-
-      - name: Run unit tests
-        run: npm test -- --runInBand
-
-      - name: Commit normalized lockfile to implementation branch
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/implementation/approved-directions-2026-10-23'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          if git diff --cached --quiet; then
-            echo "Lockfile already synchronized."
-            exit 0
-          fi
-          git commit -m "chore: synchronize npm package lock"
-          git push origin HEAD:implementation/approved-directions-2026-10-23
-
-  openapi:
-    name: Validate OpenAPI contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Lint OpenAPI
-        run: npx --yes @redocly/cli lint api/openapi.yaml
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Isolated E2E smoke test
+        run: npm run test:e2e
+      - name: Validate OpenAPI
+        run: npm run lint:openapi
 
   security-audit:
-    name: Production dependency audit
+    name: Dependency advisories (gate)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Apply non-breaking security fixes to the dependency lock
-        continue-on-error: true
-        run: npm audit fix --package-lock-only --ignore-scripts
-
-      - name: Install locked dependencies
+      - name: Install from committed lockfile
         run: npm ci
-
-      - name: Audit production dependency tree
+      - name: Audit production dependencies
         run: |
           npm audit --omit=dev --json > npm-audit-production.json || audit_status=$?
           cat npm-audit-production.json
           exit ${audit_status:-0}
-
-      - name: Upload production dependency audit report
+      - name: Upload audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
