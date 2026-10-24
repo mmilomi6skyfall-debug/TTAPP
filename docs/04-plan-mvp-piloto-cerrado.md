@@ -170,3 +170,10 @@ La migración SQL se preparó pero no se ejecutó. Build, pruebas, validación O
 
 - **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
 - **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
+
+
+## Evidencia CI y cierre actual del Paso 0 — 24 de octubre de 2026 UTC
+
+El alcance y las alternativas D0-01 a D0-07 están registrados y sus cambios principales se implementaron en la rama `implementation/approved-directions-2026-10-23`. La ejecución [GitHub Actions #40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361) aprobó instalación limpia, build, 6 suites/12 unit tests y lint OpenAPI.
+
+**No está autorizado el piloto todavía.** El workflow global quedó rojo por 11 vulnerabilidades de producción reportadas por npm (4 altas, 7 moderadas, 0 críticas). No se forzó una migración mayor automáticamente; se requiere una actualización de framework/dependencias y regresión. Además, operaciones debe fijar el polígono/horario, grupo/dispositivos, responsables/suplentes y protocolo real de escalamiento. Las pruebas E2E, restauración de backup y migración de ensayo siguen pendientes.

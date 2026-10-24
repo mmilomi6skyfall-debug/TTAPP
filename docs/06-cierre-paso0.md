@@ -30,11 +30,12 @@
 - [x] Matriz inicial de permisos y responsabilidades funcionales definida.
 - [x] Flujos de alta, cancelación, pánico y auditoría detallados.
 - [x] Migración aditiva preparada, sin ejecutarla en un ambiente compartido.
-- [x] CI propuesta en GitHub Actions para build, unit tests y lint de OpenAPI.
-- [ ] Obtener resultado verde real de CI; un workflow creado no constituye evidencia hasta que finalice.
-- [ ] Revisar diff final, riesgos de regresión y el contrato con una validación humana de backend/QA.
+- [x] CI ejecutada en GitHub Actions: `npm ci`, `npm run build`, los seis suites unitarios (12 pruebas) y lint OpenAPI pasaron en el run [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361).
+- [x] Se revisó el diff de la rama y el contrato OpenAPI; el PR se mantiene en borrador para revisión independiente.
+- [ ] Obtener resultado verde del gate de seguridad: la auditoría de dependencias de producción sigue fallando por 4 vulnerabilidades altas y 7 moderadas.
+- [ ] Ejecutar pruebas de integración/E2E, incluida regresión del flujo de pago manual; los unit tests no las sustituyen.
 - [ ] Acordar el polígono y horario concretos, lista/tamaño del grupo, plataformas/dispositivos y contactos nominales antes del go/no-go.
-- [ ] Configurar los tipos documentales de conductor y vehículo y verificar el almacenamiento controlado de documentos.
+- [ ] Configurar los tipos documentales de conductor y vehículo con las decisiones del responsable de operación y definir/probar el almacenamiento privado de los documentos.
 - [ ] Ejecutar pruebas de integración/E2E con PostgreSQL/PostGIS, Redis y dispositivos físicos o simuladores fiables.
 - [ ] Validar backup/restore, secretos, HTTPS, rollback, capacitación, responsable de auditoría y canales de soporte antes de abrir.
 
@@ -64,3 +65,17 @@
 6. Resultado CI, regresión de pagos, integración/E2E, backup/restore y ensayo de despliegue/rollback.
 
 **Conclusión:** el Paso 0 se considera cerrado en cuanto a alcance, decisiones de diseño y criterios de aceptación. Esto no implica que el código esté probado ni que el piloto esté listo para abrir. El siguiente gate solo se supera con evidencia técnica y con los datos operativos anteriores.
+
+
+## 6. Evidencia técnica real y decisión del gate (24 de octubre de 2026 UTC)
+
+La ejecución [GitHub Actions #40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361) verificó, en la rama y commit que aparece en el run:
+
+- **Build y unit tests: correctos.** `npm ci` terminó, `npm run build` terminó y Jest reportó 6 suites aprobadas y 12 pruebas aprobadas.
+- **Contrato OpenAPI: correcto.** `@redocly/cli lint api/openapi.yaml` terminó correctamente.
+- **Auditoría de dependencias de producción: no aprobada.** Después de las actualizaciones compatibles, `npm audit --omit=dev` detectó 11 vulnerabilidades del árbol de producción: 7 moderadas, 4 altas y 0 críticas. Entre los paquetes afectados aparecen `@nestjs/platform-express`, `body-parser`, `multer` y `lodash`. npm indica que parte de las correcciones restantes requiere migraciones mayores; no se aplicó `npm audit fix --force`.
+- **Estado global de ese workflow: FAILURE** exclusivamente por el gate de auditoría de producción; los dos trabajos de build/tests y OpenAPI pasaron. [Reporte de auditoría del run](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361/artifacts/12541403847).
+
+**Decisión de cierre:** el **Paso 0 queda cerrado como definición de MVP, decisiones y criterios de aceptación**, con evidencia de build/tests/contrato. El **gate de seguridad para merge productivo y apertura del piloto permanece abierto** por la auditoría de dependencias. No se ha hecho merge, despliegue, ejecución de seed, migración a una base compartida ni prueba E2E.
+
+La siguiente acción técnica es una actualización planificada de dependencias/framework con compatibilidad evaluada, build y regresión en CI; no una actualización forzada automática. Los demás pendientes del apartado 5 requieren decisiones o datos del equipo de operaciones y no pueden inventarse desde el repositorio.

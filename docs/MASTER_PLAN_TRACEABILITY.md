@@ -1,6 +1,6 @@
 # Matriz de trazabilidad del plan maestro — TTAPP
 
-**Estado:** actualizada con las selecciones autorizadas del usuario y el cierre de definición de Paso 0. La validación de implementación se registra como evidencia separada; el piloto no está autorizado para abrirse. Este archivo no existía en la rama main revisada.  
+**Estado:** decisiones y definición de Paso 0 cerradas; validación actual de implementación registrada en la sección final. El piloto no está autorizado para abrirse. Este archivo no existía en la rama main revisada.  
 **Base de la revisión documental:** main en e7e47e38dd78152a1b5c7fdb43c29b7608640b04 (23 de octubre de 2026).  
 **Importante:** las referencias son evidencia documental/estática, no resultado de una nueva ejecución de pruebas. No se leyeron archivos .env ni se ejecutaron seeds, migraciones o despliegues.
 
@@ -31,10 +31,10 @@ Nota histórica: las selecciones iniciales eran propuestas. La instrucción post
 | Área | Cambios preparados | Evidencia ejecutable |
 |---|---|---|
 | Pago manual D0-01 | Flujo de pagos existente preservado; no se cambió PAY ni se agregó pasarela | Regresión/diff final pendiente |
-| RBAC D0-02 | Roles ADMIN, OPERATOR, FINANCE, AUDITOR, BOARD; permisos diferenciados; audit logs y resumen agregado | Código actualizado; pruebas no ejecutadas |
+| RBAC D0-02 | Roles ADMIN, OPERATOR, FINANCE, AUDITOR, BOARD; permisos diferenciados; audit logs y resumen agregado | Código actualizado; CI aprobó build y unit tests (12 pruebas) |
 | Alta D0-03 | API para pasajero/conductor/vehículo, referencias documentales y verificación humana; activación falla cerrada sin configuración de tipos | Pruebas de alta y configuración pendientes; no hay carga de archivos binarios |
-| Cancelación D0-04 | Actor desde JWT, participación/organización/motivo verificados, CANCELLED_BY_OPERATOR | Prueba unitaria de política añadida; no ejecutada |
-| Pánico D0-05 | Persistencia y rutas de activar/listar/acuse/escalamiento/cierre; auditoría; sin tiempo automático no aprobado | Pruebas de servicio añadidas; no ejecutadas |
+| Cancelación D0-04 | Actor desde JWT, participación/organización/motivo verificados, CANCELLED_BY_OPERATOR | Prueba unitaria de política añadida y ejecutada en CI (parte de 12 pruebas) |
+| Pánico D0-05 | Persistencia y rutas de activar/listar/acuse/escalamiento/cierre; auditoría; sin tiempo automático no aprobado | Pruebas de servicio añadidas y ejecutadas en CI (parte de 12 pruebas) |
 | Zona/horario D0-06 | No se codificaron valores ficticios | Bloqueo operativo |
 | Responsables D0-07 | Modelo de roles/gate documentado | Titulares/suplentes pendientes |
 | Esquema | Column organization_id para auditoría, nuevo estado de cancelación y panic_alerts; migración aditiva | Migración no ejecutada |
@@ -77,3 +77,22 @@ El documento 04 especifica que no debe abrirse el piloto con bloqueos de aislami
 
 - **Reingreso del conductor a disponibilidad:** tras completar o cancelar un viaje asignado, el backend vuelve a poner al conductor en `AVAILABLE` únicamente si tiene una asignación activa a vehículo activo de la misma organización y ambos cumplen las políticas documentales configuradas. Si falta configuración/documentación o está vencida, queda `OFFLINE` y debe volver a pasar por la validación. Así se evita que completar/cancelar un viaje omita el gate de D0-03.
 - **Pruebas añadidas pero no ejecutadas:** política de lectura/cancelación de viaje, saneamiento de auditoría, política documental, servicio de pánico, alta interna y agregados de mesa directiva. No se afirma resultado verde sin ejecución.
+
+
+## Actualización de verificación técnica — CI del 24 de octubre de 2026 UTC
+
+Run: [40046971361](https://github.com/mmilomi6skyfall-debug/TTAPP/actions/runs/40046971361), branch `implementation/approved-directions-2026-10-23`.
+
+| Control | Resultado |
+|---|---|
+| Instalación limpia `npm ci` | PASS |
+| Build `npm run build` | PASS |
+| Jest | PASS — 6 suites y 12 pruebas |
+| Lint OpenAPI | PASS |
+| Auditoría de producción `npm audit --omit=dev` | FAIL — 11 vulnerabilidades: 4 altas, 7 moderadas, 0 críticas |
+| Integración/E2E PostgreSQL/PostGIS/Redis/dispositivos | NO EJECUTADAS |
+| Migración de esquema | Preparada, no aplicada |
+| Seed | No ejecutado |
+| Merge/despliegue | No realizados; PR sigue en borrador |
+
+El gate de dependencias no se oculta: los fixes restantes indican actualización mayor de componentes NestJS. No se forzó el cambio de mayor; requiere una rama de actualización de framework y regresión técnica. El Paso 0 se cierra para alcance y criterios, no para apertura productiva.
