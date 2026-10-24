@@ -67,7 +67,7 @@ describe('DispatchService organization isolation', () => {
     drivers.findOne.mockResolvedValue({
       userId: 'driver-b',
       status: 'AVAILABLE',
-      user: { organization: { id: 'org-b' } },
+      user: { status: 'ACTIVE', organization: { id: 'org-b' } },
     });
     await expect(service.manualAssign(
       { tripId: 'trip-a', driverId: 'driver-b', reason: 'Prueba autorizada' } as any,
@@ -83,7 +83,7 @@ describe('DispatchService organization isolation', () => {
     drivers.findOne.mockResolvedValue({
       userId: 'driver-a',
       status: 'AVAILABLE',
-      user: { organization: { id: 'org-a' } },
+      user: { status: 'ACTIVE', organization: { id: 'org-a' } },
     });
     const assigned = await service.manualAssign(
       { tripId: 'trip-a', driverId: 'driver-a', reason: 'Asignación de prueba' } as any,

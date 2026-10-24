@@ -79,7 +79,7 @@ export class DispatchService {
            ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
          ) AS distance_meters
        FROM driver_profiles dp
-       JOIN users u ON u.id = dp.user_id AND u.organization_id = $5
+       JOIN users u ON u.id = dp.user_id AND u.organization_id = $5 AND u.status = 'ACTIVE'
        JOIN driver_vehicle_assignments dva ON dva.driver_id = dp.user_id AND dva.active = true
        JOIN vehicles v ON v.id = dva.vehicle_id
        JOIN driver_locations dl ON dl.driver_id = dp.user_id
@@ -287,6 +287,9 @@ export class DispatchService {
         offer.driver.user?.organization?.id !== currentUser.organizationId) {
       throw new ForbiddenException('La oferta, el viaje y el conductor deben pertenecer a tu organización');
     }
+    if (offer.driver.user?.status !== 'ACTIVE') {
+      throw new ForbiddenException('La cuenta del conductor no está activa');
+    }
     if (offer.respondedAt) {
       throw new ConflictException('Esta oferta ya fue respondida o expiro');
     }
@@ -375,6 +378,9 @@ export class DispatchService {
     if (!driver) throw new NotFoundException('Conductor no encontrado');
     if (driver.user?.organization?.id !== currentUser.organizationId) {
       throw new ForbiddenException('El conductor no pertenece a tu organización');
+    }
+    if (driver.user?.status !== 'ACTIVE') {
+      throw new ForbiddenException('La cuenta del conductor no está activa');
     }
     if (driver.status !== 'AVAILABLE') {
       throw new ConflictException('El conductor no esta disponible');
