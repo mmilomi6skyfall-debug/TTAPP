@@ -5,7 +5,7 @@ import { AuditService } from './audit.service';
 const MUTATING_METHODS = new Set(['POST','PATCH','PUT','DELETE']);
 const REDACTED = new Set([
  'password','passwordhash','password_hash','accesstoken','refreshtoken','token','secret','apikey','authorization',
- 'email','phone','fullname','license_number','licensenumber','file_url','fileurl','lat','lng','latitude','longitude',
+ 'email','phone','userid','passengerid','driverid','vehicleid','tripid','alertid','organizationid','branchid','fullname','license_number','licensenumber','file_url','fileurl','lat','lng','latitude','longitude',
  'reason','comment','address','location','position','coordinates','reference_number','referencenumber',
 ]);
 function sanitizeValue(value: unknown): unknown {
