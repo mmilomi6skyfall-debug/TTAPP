@@ -1,6 +1,6 @@
 # Matriz de trazabilidad del plan maestro — TTAPP
 
-**Estado:** inicializada durante Paso 0; se registraron las selecciones propuestas del usuario el 23 de octubre de 2026. La aprobación explícita del gate sigue pendiente. Este archivo no existía en la rama main revisada.  
+**Estado:** actualizada con las selecciones autorizadas del usuario y el cierre de definición de Paso 0. La validación de implementación se registra como evidencia separada; el piloto no está autorizado para abrirse. Este archivo no existía en la rama main revisada.  
 **Base de la revisión documental:** main en e7e47e38dd78152a1b5c7fdb43c29b7608640b04 (23 de octubre de 2026).  
 **Importante:** las referencias son evidencia documental/estática, no resultado de una nueva ejecución de pruebas. No se leyeron archivos .env ni se ejecutaron seeds, migraciones o despliegues.
 
@@ -14,7 +14,7 @@
 
 ## Registro de respuesta propuesta (23 de octubre de 2026)
 
-El usuario envió selecciones para revisión y pidió mantener el Paso 1 bloqueado hasta aprobación explícita. Las selecciones no se consideran aprobación final.
+Nota histórica: las selecciones iniciales eran propuestas. La instrucción posterior del usuario autorizó su implementación en la rama separada; el cierre del Paso 0 y los bloqueos de apertura se detallan en `docs/06-cierre-paso0.md`.
 
 | ID | Alternativa seleccionada para revisión | Estado |
 |---|---|---|
@@ -48,7 +48,7 @@ El usuario envió selecciones para revisión y pidió mantener el Paso 1 bloquea
 | S0-02 | Segregar viajes y auditoría por rol | seed.ts define ADMIN, OPERATOR, FINANCE, DRIVER, PASSENGER; TripsService habilita lectura amplia para staff | SELECCIÓN B IMPLEMENTADA; PRUEBAS PENDIENTES | Aprobar D0-02; corregir matriz RBAC, aislamiento por organización y consultas de auditoría | Operaciones + seguridad |
 | S0-03 | Alta y validación de pasajero, conductor y vehículo | schema.sql incluye perfiles/documentos con verified; API observada sin CRUD completo para esos flujos | SELECCIÓN A IMPLEMENTADA PARCIALMENTE; CONFIGURACIÓN PENDIENTE | Aprobar D0-03; definir criterio formal de validado y demostrar alta a través de un flujo autorizado | Operaciones |
 | S0-04 | Cancelaciones seguras por rol y estado | docs/02 ticket 7.18; CancelTripDto acepta cancelledBy; TripsService.cancel usa ese valor | SELECCIÓN B IMPLEMENTADA; PRUEBAS PENDIENTES | Aprobar D0-04; backend deriva actor del token, comprueba viaje/organización/estado y prueba denegaciones | Backend + operaciones |
-| S0-05 | Pánico de pasajero y conductor con atención trazable | docs/04 criterio PANIC-01; no se halló endpoint/modelo/flujo dedicado en OpenAPI/schema/módulos listados | PROPUESTA B RECIBIDA; BLOQUEO-GATE | Aprobar D0-05; implementar incidente, acuse, escalamiento, cierre, auditoría, interfaces y pruebas E2E | Seguridad/operaciones |
+| S0-05 | Pánico de pasajero y conductor con atención trazable | docs/04 criterio PANIC-01; no se halló endpoint/modelo/flujo dedicado en OpenAPI/schema/módulos listados | IMPLEMENTACIÓN EN RAMA; VALIDACIÓN PENDIENTE | Aprobar D0-05; implementar incidente, acuse, escalamiento, cierre, auditoría, interfaces y pruebas E2E | Seguridad/operaciones |
 | S0-06 | Zona, horario, plataformas y grupo nominal | docs/01 refiere 50–100 unidades; docs/04 propone grupo pequeño en zona acotada; docs/03 deja datos reales pendientes | SELECCIÓN A; DETALLES OPERATIVOS PENDIENTES | Aprobar D0-06, cargar zona/horarios reales autorizados y probar dispositivos y límites | Negocio + operaciones |
 | S0-07 | Responsables y autoridad de go/no-go | docs/03 sección 5/6 y docs/04 checklist piden responsables, pero no se asignan titulares | SELECCIÓN B; NOMBRAMIENTOS PENDIENTES | Aprobar D0-07; registrar responsables, suplentes, canales y autoridad final | Organización / mesa directiva |
 | T0-01 | Aislamiento de viajes por organización | TripsService.findAll no añade filtro de organización para staff; canViewTrip trata OPERATOR/ADMIN/FINANCE como acceso amplio | BLOQUEO-GATE | Pruebas negativas de usuario de organización A contra recursos de B en lista/detalle y mutaciones | Backend + seguridad |

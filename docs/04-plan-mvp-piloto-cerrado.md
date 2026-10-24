@@ -5,17 +5,17 @@
 **Estado:** plan de ejecución; ningún criterio se considera aprobado sin evidencia reproducible.  
 **Restricción:** no cambiar lógica de pagos ni repetir la auditoría del PR #1. Por D0-01=A, se conserva exclusivamente la confirmación manual de cobro ya existente (efectivo/terminal del conductor) y el cierre actual del viaje; no se integra pasarela ni se añaden cobros reales.
 
-## Estado del Paso 0 — pendiente de aprobación humana (23 de octubre de 2026)
+## Estado del Paso 0 — decisiones seleccionadas; verificación de salida pendiente (23 de octubre de 2026)
 
 La revisión documental y estática del repositorio remoto se ha registrado en **docs/05-registro-decisiones-paso0.md** y **docs/MASTER_PLAN_TRACEABILITY.md**.
 
 - **Confirmado documentalmente:** el plan de este archivo excluye pagos del alcance funcional del MVP salvo compatibilidad/no regresión; la especificación del Paso 7 conserva una confirmación manual que actualmente participa en el cierre del viaje. La reconciliación queda pendiente.
-- **Pendiente:** alcance de pago, matriz de visibilidad por rol, alta/validación, cancelación, protocolo de pánico, zona/horario/plataformas/tamaño de grupo y responsables de operación y go/no-go.
+- **Cerrado para diseño:** alcance de pago, separación de roles, alta interna, cancelación por rol/estado, ciclo de pánico, piloto urbano acotado y estructura de responsabilidades. Los parámetros operativos que requieren datos reales siguen como condiciones explícitas de apertura.
 - **Brechas técnicas registradas:** no se hallaron en la rama revisada un flujo específico de pánico, los roles de auditoría/mesa directiva, rutas completas de alta operativa ni una matriz de trazabilidad existente. También se deben verificar y corregir, con pruebas, las restricciones por organización y por actor en lectura/cancelación de viajes.
 - **Respuesta recibida para revisión (23 de octubre de 2026):** D0-01=A (mantener confirmación manual existente); D0-02=B (separación de roles); D0-03=A (alta controlada); D0-04=B (cancelación por rol/estado); D0-05=B (acuse/escalamiento/cierre de pánico); D0-06=A (zona pequeña y turnos supervisados); D0-07=B (responsables y autoridad única go/no-go).
-- **Estado de la respuesta:** el usuario pidió expresamente que estas selecciones se registren como propuesta para revisión y que el Paso 1 permanezca bloqueado hasta aprobación explícita. No se tratan como requisitos definitivamente aprobados.
+- **Estado de la respuesta:** tras la selección inicial, el usuario ordenó implementar los cambios y solicitó completar las tareas pendientes para cerrar el Paso 0. Las alternativas se consideran autorizadas para esta rama de implementación. Esto no autoriza desplegar ni abrir el piloto.
 - **Restricción de pagos:** D0-01=A no autoriza nuevos cobros reales ni una pasarela, y no permite modificar la lógica de pagos.
-- **Gate:** no iniciar el Paso 1 hasta recibir aprobación expresa del conjunto de decisiones, concretar las subdecisiones pendientes y acordar cómo cerrar las brechas de seguridad P0/P1. Los documentos de los pasos 1, 7 y 8 se conservan sin reinterpretarlos silenciosamente.
+- **Gate:** el Paso 0 queda cerrado como definición de alcance y criterios; la implementación y validación técnica sigue en una rama aislada. No desplegar ni abrir el piloto hasta satisfacer los criterios técnicos y operativos del nuevo documento de cierre. Los documentos de los pasos 1, 7 y 8 se mantienen con addenda explícitos.
 
 Base de la revisión de Paso 0: rama remota main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04. Este dato describe el estado remoto inspeccionado; no equivale a una comprobación del árbol de trabajo local abierto en VS Code.
 

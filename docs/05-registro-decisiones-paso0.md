@@ -1,11 +1,11 @@
 # Registro de decisiones — Paso 0 del MVP TTAPP
 
-**Estado:** se recibieron selecciones del usuario para revisión; aprobación explícita del gate pendiente. Las selecciones aún no se consideran decisiones finales aprobadas.  
+**Estado:** las selecciones D0-01 a D0-07 fueron elegidas por el usuario y su implementación fue autorizada en la rama aislada. El cierre técnico del Paso 0 se registra en `docs/06-cierre-paso0.md`; el go/no-go del piloto sigue sujeto a evidencia.  
 **Fecha de revisión:** 23 de octubre de 2026.  
 **Base remota revisada:** rama main, commit e7e47e38dd78152a1b5c7fdb43c29b7608640b04.  
 **Alcance de este paso:** análisis y documentación únicamente. No se modificó código funcional, no se ejecutaron seeds ni migraciones, no se hizo despliegue y no se procesaron pagos.
 
-## Registro de respuesta del usuario — propuesta para revisión (23 de octubre de 2026)
+## Registro histórico de selección inicial (23 de octubre de 2026)
 
 El usuario remitió selecciones para revisión y pidió expresamente mantener bloqueado el Paso 1 hasta una aprobación explícita. Por tanto, las alternativas elegidas abajo se registran como **propuestas recibidas**, no como decisiones finales aprobadas.
 
@@ -19,7 +19,7 @@ El usuario remitió selecciones para revisión y pidió expresamente mantener bl
 | D0-06 | **A — piloto pequeño, zona delimitada y turnos supervisados.** | Pendiente de aprobación del gate y de fijar polígono, días/horas, plataformas y versiones disponibles, lista nominal y tamaño del grupo. |
 | D0-07 | **B — responsables y suplentes por función, con una única autoridad go/no-go.** | Pendiente de aprobación del gate y de asignar titulares/suplentes, canal de soporte, responsable de incidentes y autoridad final. |
 
-**Estado global:** propuesta recibida; no equivale a aprobación final de negocio. **El Paso 1 permanece bloqueado.** No se modifica código funcional ni se ejecutan cambios de pagos, seeds, migraciones o despliegues como parte de este registro.
+**Estado histórico:** estas filas documentan las dudas iniciales, no el estado actual. La selección final para implementación y el gate vigente están recogidos en la sección siguiente. No se ejecutaron pagos, seeds, migraciones de base de datos ni despliegues.
 
 ## Resolución del usuario — alternativas autorizadas para implementación (23 de octubre de 2026)
 
@@ -35,7 +35,7 @@ La instrucción posterior **“realiza los cambios propuestos”** autoriza impl
 | D0-06 | A — zona pequeña y turnos supervisados | Seleccionado; polígono, horario, plataformas y tamaño de grupo pendientes de definición. |
 | D0-07 | B — responsables/suplentes y una autoridad go/no-go | Seleccionado; faltan titulares, suplentes y canales nominales. |
 
-**Paso 1:** sigue bloqueado hasta una autorización expresa posterior, configuración real y cierre de los gates técnicos. La migración no se aplicó; pruebas y build no se ejecutaron.
+**Paso 1:** la especificación puede continuar en una rama separada después de crear un cierre verificable. El despliegue y la apertura del piloto permanecen bloqueados hasta que la CI, las decisiones operativas y las pruebas de integración/E2E tengan evidencia.
 
 ## 1. Cómo leer este registro
 
