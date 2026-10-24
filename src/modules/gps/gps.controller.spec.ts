@@ -27,7 +27,7 @@ describe('GpsController tenant and actor isolation', () => {
     const history = { create: jest.fn((value: any) => value), save: jest.fn(async () => undefined) };
     const db = { query: jest.fn(async () => [{ user_id: 'operator-a' }]) };
     const controller = new GpsController(history as any, db as any);
-    await expect(controller.ping('operator-a', dto as any, user('operator-a', 'OPERATOR')).rejects.toThrow(ForbiddenException);
+    await expect(controller.ping('operator-a', dto as any, user('operator-a', 'OPERATOR'))).rejects.toThrow(ForbiddenException);
     expect(db.query).not.toHaveBeenCalled();
   });
 
@@ -35,7 +35,7 @@ describe('GpsController tenant and actor isolation', () => {
     const history = { create: jest.fn((value: any) => value), save: jest.fn(async () => undefined) };
     const db = { query: jest.fn(async () => []) };
     const controller = new GpsController(history as any, db as any);
-    await expect(controller.ping('driver-a', dto as any, user('driver-a')).rejects.toThrow(ForbiddenException);
+    await expect(controller.ping('driver-a', dto as any, user('driver-a'))).rejects.toThrow(ForbiddenException);
     expect(db.query).toHaveBeenCalledTimes(1);
     expect(history.save).not.toHaveBeenCalled();
   });
@@ -46,7 +46,7 @@ describe('GpsController tenant and actor isolation', () => {
       .mockResolvedValueOnce([{ user_id: 'driver-a' }])
       .mockResolvedValueOnce([]) };
     const controller = new GpsController(history as any, db as any);
-    await expect(controller.ping('driver-a', dto as any, user('driver-a')).resolves.toBeUndefined();
+    await expect(controller.ping('driver-a', dto as any, user('driver-a'))).resolves.toBeUndefined();
     expect(db.query).toHaveBeenCalledTimes(2);
     expect(db.query.mock.calls[0][1]).toEqual(['driver-a', 'org-a']);
     expect(history.save).toHaveBeenCalledTimes(1);
