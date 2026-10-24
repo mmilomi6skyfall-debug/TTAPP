@@ -42,6 +42,9 @@ jobs:
       - name: Reconcile the legacy lockfile against package.json
         run: npm install --package-lock-only --ignore-scripts
 
+      - name: Apply non-breaking security fixes to the dependency lock
+        run: npm audit fix --package-lock-only --ignore-scripts
+
       - name: Upload normalized lockfile for review
         uses: actions/upload-artifact@v4
         with:
@@ -101,6 +104,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      - name: Apply non-breaking security fixes to the dependency lock
+        run: npm audit fix --package-lock-only --ignore-scripts
 
       - name: Install locked dependencies
         run: npm ci
