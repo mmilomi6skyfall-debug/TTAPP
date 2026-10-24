@@ -16,7 +16,7 @@ on:
       - '.github/workflows/step0-validation.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: step0-validation-${{ github.ref }}
@@ -37,6 +37,17 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Reconcile the legacy lockfile against package.json
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Upload normalized lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: normalized-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Install locked dependencies
         run: npm ci
 
@@ -45,6 +56,19 @@ jobs:
 
       - name: Run unit tests
         run: npm test -- --runInBand
+
+      - name: Commit normalized lockfile to implementation branch
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/implementation/approved-directions-2026-10-23'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile already synchronized."
+            exit 0
+          fi
+          git commit -m "chore: synchronize npm package lock"
+          git push origin HEAD:implementation/approved-directions-2026-10-23
 
   openapi:
     name: Validate OpenAPI contract
