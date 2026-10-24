@@ -21,9 +21,21 @@ export class GpsController {
     @Body() dto: LocationPingDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    // Solo el propio conductor puede reportar su posicion.
-    if (driverId !== user.id) {
-      throw new ForbiddenException('No puedes reportar la posicion de otro conductor');
+    // No basta con que el path coincida con el subject: debe ser un JWT DRIVER
+    // y existir el perfil activo de conductor dentro de su organización.
+    if (user.role !== 'DRIVER' || driverId !== user.id) {
+      throw new ForbiddenException('Solo el propio conductor puede reportar su posicion');
+    }
+    const ownedDriver = await this.dataSource.query(
+      `SELECT dp.user_id
+       FROM driver_profiles dp
+       JOIN users u ON u.id = dp.user_id
+       WHERE dp.user_id = $1 AND u.organization_id = $2 AND u.status = 'ACTIVE'
+       LIMIT 1`,
+      [driverId, user.organizationId],
+    );
+    if (!ownedDriver.length) {
+      throw new ForbiddenException('El conductor no pertenece a tu organización activa');
     }
 
     const point = { type: 'Point', coordinates: [dto.lng, dto.lat] };
