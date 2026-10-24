@@ -12,13 +12,17 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"src/**/*.ts\" --fix",
-    "test": "jest",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "jest --passWithNoTests=false",
     "test:watch": "jest --watch",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
     "seed:pilot-data": "ts-node -r tsconfig-paths/register src/database/seeds/seed-pilot-data.ts",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "lint:fix": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --fix",
+    "test:unit": "jest --runInBand",
+    "lint:openapi": "npx --yes @redocly/cli lint api/openapi.yaml",
+    "validate": "npm run lint && npm run test:unit && npm run test:e2e && npm run lint:openapi && npm run build"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",
@@ -63,7 +67,10 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "eslint": "^8.57.1",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0"
   },
   "jest": {
     "moduleFileExtensions": [
