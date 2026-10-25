@@ -15,15 +15,21 @@ export function canViewTripForUser(trip: TripAccessFacts, user: AuthenticatedUse
   return user.permissions.includes('trips.view');
 }
 
-export function cancellationStatusForUser(trip: TripAccessFacts, user: AuthenticatedUser, reason: string): TripStatus {
-  if (reason.trim().length < 3 || reason.trim().length > 500) {
+/**
+ * D0-04=A: any authenticated user may cancel a trip in their own organization
+ * before it starts. State validation stays in TripsService.assertTransition.
+ * The actor is the JWT subject; client-provided cancelledBy is ignored.
+ */
+export function cancellationStatusForUser(
+  trip: TripAccessFacts,
+  user: AuthenticatedUser,
+  reason: string,
+): TripStatus {
+  if (!reason || reason.trim().length < 3 || reason.trim().length > 500) {
     throw new ForbiddenException('La cancelación requiere un motivo de 3 a 500 caracteres');
   }
-  if (trip.organizationId !== user.organizationId) {
+  if (!user.id || !user.organizationId || trip.organizationId !== user.organizationId) {
     throw new ForbiddenException('El viaje no pertenece a tu organización');
   }
-  if (user.role === 'PASSENGER' && trip.passengerId === user.id) return TripStatus.CANCELLED_BY_PASSENGER;
-  if (user.role === 'DRIVER' && trip.driverId === user.id) return TripStatus.CANCELLED_BY_DRIVER;
-  if (user.role === 'OPERATOR' && user.permissions.includes('trips.cancel')) return TripStatus.CANCELLED_BY_OPERATOR;
-  throw new ForbiddenException('Tu rol no puede cancelar este viaje');
+  return TripStatus.CANCELLED_BY_USER;
 }

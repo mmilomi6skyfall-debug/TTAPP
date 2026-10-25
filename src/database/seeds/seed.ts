@@ -13,7 +13,7 @@ import * as bcrypt from 'bcrypt';
 
 const PERMISSIONS = [
   'trips.view', 'trips.manage', 'trips.review', 'trips.cancel',
-  'dispatch.manual_assign', 'dispatch.offers.view', 'dispatch.candidates.view',
+  'dispatch.manual_assign', 'dispatch.offers.view', 'dispatch.offers.respond', 'dispatch.candidates.view',
   'fares.edit', 'fares.publish', 'drivers.manage', 'vehicles.manage', 'users.manage',
   'finance.view', 'finance.reconcile', 'audit.view', 'configuration.manage', 'panic.alerts.view',
   'panic.alerts.manage', 'board.summary.view',
@@ -27,7 +27,7 @@ const ROLES: Record<string, string[]> = {
   FINANCE: ['finance.view', 'finance.reconcile'],
   AUDITOR: ['audit.view'],
   BOARD: ['board.summary.view'],
-  DRIVER: ['dispatch.offers.view'],
+  DRIVER: ['dispatch.offers.view', 'dispatch.offers.respond'],
   PASSENGER: [],
 };
 

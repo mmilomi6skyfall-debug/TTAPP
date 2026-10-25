@@ -232,7 +232,7 @@ export class TripsService {
     trip: Trip,
     currentUser: AuthenticatedUser,
   ): asserts trip is Trip & { driver: DriverProfile } {
-    if (!trip.driver || trip.driver.userId !== currentUser.id) {
+    if (currentUser.role !== 'DRIVER' || !trip.driver || trip.driver.userId !== currentUser.id) {
       throw new ForbiddenException('Solo el conductor asignado puede hacer esto');
     }
   }

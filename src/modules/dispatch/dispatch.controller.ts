@@ -1,4 +1,4 @@
-import { Body, Controller, ConflictException, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { DispatchService } from './dispatch.service';
 import { RespondOfferDto } from './dto/respond-offer.dto';
 import { ManualAssignDto } from './dto/manual-assign.dto';
@@ -6,32 +6,22 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { AuthenticatedUser } from '../auth/jwt-payload.interface';
 import { toTripResponse } from '../trips/mappers/trip.mapper';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Trip } from '../trips/entities/trip.entity';
-import { Repository } from 'typeorm';
 
 @Controller()
 export class DispatchController {
-  constructor(
-    private readonly dispatchService: DispatchService,
-    @InjectRepository(Trip) private readonly trips: Repository<Trip>,
-  ) {}
+  constructor(private readonly dispatchService: DispatchService) {}
 
   @RequirePermissions('trips.manage')
   @Post('trips/:tripId/dispatch/start')
-  async start(@Param('tripId') tripId: string) {
-    const trip = await this.trips.findOneOrFail({ where: { id: tripId } });
-    if (trip.serviceCategory === 'FORANEO') {
-      throw new ConflictException('FORANEO no admite despacho automatico');
-    }
-    const updated = await this.dispatchService.startDispatch(tripId);
+  async start(@Param('tripId') tripId: string, @CurrentUser() user: AuthenticatedUser) {
+    const updated = await this.dispatchService.startDispatch(tripId, user.organizationId);
     return toTripResponse(updated);
   }
 
   @RequirePermissions('dispatch.offers.view')
   @Get('dispatch/offers/pending')
   async pendingOffers(@CurrentUser() user: AuthenticatedUser) {
-    const offers = await this.dispatchService.getPendingOffersForDriver(user.id);
+    const offers = await this.dispatchService.getPendingOffersForDriver(user.id, user.organizationId);
     return offers.map((o) => ({
       offerId: o.id,
       tripId: o.trip.id,
@@ -47,6 +37,7 @@ export class DispatchController {
     return this.dispatchService.getRankedCandidates(tripId, user.organizationId);
   }
 
+  @RequirePermissions('dispatch.offers.respond')
   @Post('dispatch/offers/:offerId/respond')
   async respond(
     @Param('offerId') offerId: string,
