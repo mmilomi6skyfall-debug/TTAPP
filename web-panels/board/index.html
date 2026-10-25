@@ -314,7 +314,7 @@
                         <i data-lucide="map" class="w-5 h-5 text-brand-cyan"></i>
                         Mapa de Flota de Taxis · Huauchinango, Puebla
                     </h2>
-                    <p class="text-xs text-brand-muted">Mapa ilustrativo; las posiciones, velocidades y estados son simulados, no telemetría real</p>
+                    <p class="text-xs text-brand-muted">Mapa callejero real de OpenStreetMap. Las posiciones de taxis son ficticias hasta conectar el GPS y la API.</p>
                 </div>
 
                 <!-- Map Filter Buttons -->
@@ -338,7 +338,7 @@
             </div>
 
             <!-- Map + Fleet Sidebar Container -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[500px]">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[760px] lg:min-h-0 lg:h-[500px]">
                 <!-- Fleet List Sidebar (4 Cols) -->
                 <div class="lg:col-span-4 bg-brand-surface/70 border border-brand-border rounded-xl p-3 flex flex-col h-full overflow-hidden">
                     <div class="flex items-center justify-between mb-2 pb-2 border-b border-brand-border/60">
@@ -355,7 +355,7 @@
                 </div>
 
                 <!-- Leaflet Canvas (8 Cols) -->
-                <div class="lg:col-span-8 relative rounded-xl overflow-hidden border border-brand-border h-full min-h-[360px]">
+                <div class="lg:col-span-8 relative rounded-xl overflow-hidden border border-brand-border h-[500px] lg:h-full min-h-[360px]">
                     <div id="fleetMap"></div>
 
                     <!-- Map Legend Overlay -->
@@ -675,14 +675,28 @@
             // Center lat/lng: Huauchinango, Puebla, Mexico
             map = L.map('fleetMap', {
                 zoomControl: true,
-                attributionControl: false
-            }).setView([20.1764, -98.0531], 14);
+                attributionControl: true
+            }).setView([20.1764, -98.0531], 15);
 
-            // Dark Mode CartoDB TileLayer
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            // Cartografía real de calles de Huauchinango mediante OpenStreetMap.
+            // La atribución es obligatoria y se mantiene visible en el mapa.
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                subdomains: 'abcd'
+                subdomains: 'abc',
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
             }).addTo(map);
+
+            streetLayer.on('tileerror', () => {
+                showToast('No se pudo cargar una tesela del mapa. Verifica la conexión a Internet.', 'warning');
+            });
+
+            // Corrige las dimensiones del mapa después de que la cuadrícula se renderice.
+            map.whenReady(() => {
+                window.setTimeout(() => map.invalidateSize(true), 150);
+            });
+            window.addEventListener('resize', () => {
+                if (map) map.invalidateSize();
+            });
 
             renderMapMarkers();
             renderFleetSidebar();
