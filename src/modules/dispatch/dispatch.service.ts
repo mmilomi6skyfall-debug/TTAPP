@@ -65,6 +65,9 @@ export class DispatchService {
   // Ticket 7.7.a — filtro de elegibilidad
   // ----------------------------------------------------------------
   private async getEligibleCandidates(trip: Trip, maxRadiusMeters: number): Promise<CandidateRow[]> {
+    const organizationId = trip.organization?.id;
+    if (!organizationId) throw new ForbiddenException('El viaje no tiene una organización válida');
+
     return this.dataSource.query(
       `SELECT
          dp.user_id AS driver_id,
@@ -76,10 +79,12 @@ export class DispatchService {
            ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
          ) AS distance_meters
        FROM driver_profiles dp
+       JOIN users u ON u.id = dp.user_id AND u.organization_id = $5 AND u.status = 'ACTIVE'
        JOIN driver_vehicle_assignments dva ON dva.driver_id = dp.user_id AND dva.active = true
        JOIN vehicles v ON v.id = dva.vehicle_id
        JOIN driver_locations dl ON dl.driver_id = dp.user_id
        WHERE dp.status = 'AVAILABLE'
+         AND v.organization_id = $5
          AND v.status = 'ACTIVE'
          AND dl.recorded_at > now() - interval '2 minutes'
          AND ST_DWithin(
@@ -90,7 +95,7 @@ export class DispatchService {
          AND dp.user_id NOT IN (
            SELECT driver_id FROM trip_assignment_offers WHERE trip_id = $4
          )`,
-      [trip.origin.coordinates[0], trip.origin.coordinates[1], maxRadiusMeters, trip.id],
+      [trip.origin.coordinates[0], trip.origin.coordinates[1], maxRadiusMeters, trip.id, organizationId],
     );
   }
 
@@ -118,8 +123,10 @@ export class DispatchService {
 
     const cancelRows = await this.dataSource.query(
       `SELECT count(*)::int AS n FROM trips
-       WHERE driver_id = $1 AND status = 'CANCELLED_BY_DRIVER' AND requested_at > now() - interval '24 hours'`,
-      [row.driver_id],
+       WHERE driver_id = $1 AND organization_id = $2
+         AND status = 'CANCELLED_BY_DRIVER'
+         AND requested_at > now() - interval '24 hours'`,
+      [row.driver_id, organizationId],
     );
     const cancellationPenalty = clamp(Number(cancelRows[0].n) / 5, 0, 1);
 
@@ -163,7 +170,15 @@ export class DispatchService {
   }
 
   async getRankedCandidates(tripId: string, organizationId: string): Promise<ScoredCandidate[]> {
-    const trip = await this.trips.findOneOrFail({ where: { id: tripId } });
+    const trip = await this.trips.findOne({
+      where: { id: tripId },
+      relations: ['organization'],
+    });
+    if (!trip) throw new NotFoundException('Viaje no encontrado');
+    if (trip.organization?.id !== organizationId) {
+      throw new ForbiddenException('El viaje no pertenece a tu organización');
+    }
+
     const config = await this.readDispatchConfig(organizationId);
     const rows = await this.getEligibleCandidates(trip, config.maxRadiusMeters);
     const scored = await Promise.all(rows.map((r) => this.scoreCandidate(r, organizationId, config)));
@@ -173,9 +188,12 @@ export class DispatchService {
   // ----------------------------------------------------------------
   // Ticket 7.7.c — disparar/reintentar despacho automatico
   // ----------------------------------------------------------------
-  async startDispatch(tripId: string): Promise<Trip> {
+  async startDispatch(tripId: string, organizationId?: string): Promise<Trip> {
     const trip = await this.trips.findOne({ where: { id: tripId }, relations: ['organization'] });
     if (!trip) throw new NotFoundException('Viaje no encontrado');
+    if (organizationId && trip.organization?.id !== organizationId) {
+      throw new ForbiddenException('El viaje no pertenece a tu organización');
+    }
     assertTransition(trip, ASSIGNABLE_STATES);
 
     if (trip.serviceCategory === 'FORANEO') {
@@ -183,14 +201,28 @@ export class DispatchService {
     }
 
     const candidates = await this.getRankedCandidates(tripId, trip.organization.id);
-
-    if (candidates.length === 0) {
-      // Se queda en QUOTED — ver Ticket 7.4, nota de simplificacion del
-      // piloto (sin reintento automatico en segundo plano todavia).
-      return trip;
-    }
+    if (candidates.length === 0) return trip;
 
     const top = candidates[0];
+    // La elegibilidad puede cambiar después del ranking; revalidar tenant,
+    // vehículo activo y disponibilidad antes de crear la oferta.
+    const eligible = await this.dataSource.query(
+      `SELECT dp.user_id
+       FROM driver_profiles dp
+       JOIN users u ON u.id = dp.user_id AND u.organization_id = $3 AND u.status = 'ACTIVE'
+       JOIN driver_vehicle_assignments a ON a.driver_id = dp.user_id AND a.vehicle_id = $2 AND a.active = true
+       JOIN vehicles v ON v.id = a.vehicle_id AND v.organization_id = $3 AND v.status = 'ACTIVE'
+       WHERE dp.user_id = $1 AND dp.status = 'AVAILABLE'
+       LIMIT 1`,
+      [top.driverId, top.vehicleId, trip.organization.id],
+    );
+    if (!eligible.length) return trip;
+
+    const priorOffer = await this.offers.findOne({
+      where: { trip: { id: tripId }, driver: { userId: top.driverId } },
+    });
+    if (priorOffer) return trip;
+
     const fromStatus = trip.status;
     trip.status = TripStatus.SEARCHING_DRIVER;
     await this.trips.save(trip);
@@ -239,41 +271,61 @@ export class DispatchService {
     response: 'ACCEPTED' | 'REJECTED',
     currentUser: AuthenticatedUser,
   ): Promise<Trip> {
+    if (currentUser.role !== 'DRIVER' || !currentUser.permissions.includes('dispatch.offers.respond')) {
+      throw new ForbiddenException('Requiere un conductor autorizado con dispatch.offers.view');
+    }
+
     const offer = await this.offers.findOne({
       where: { id: offerId },
-      relations: ['trip', 'driver'],
+      relations: ['trip', 'trip.organization', 'driver', 'driver.user', 'driver.user.organization'],
     });
     if (!offer) throw new NotFoundException('Oferta no encontrada');
     if (offer.driver.userId !== currentUser.id) {
       throw new ForbiddenException('Esta oferta no es tuya');
     }
+    if (offer.trip.organization?.id !== currentUser.organizationId ||
+        offer.driver.user?.organization?.id !== currentUser.organizationId) {
+      throw new ForbiddenException('La oferta, el viaje y el conductor deben pertenecer a tu organización');
+    }
+    if (offer.driver.user?.status !== 'ACTIVE') {
+      throw new ForbiddenException('La cuenta del conductor no está activa');
+    }
     if (offer.respondedAt) {
       throw new ConflictException('Esta oferta ya fue respondida o expiro');
     }
 
-    offer.response = response;
-    offer.respondedAt = new Date();
-    await this.offers.save(offer);
-
     const trip = offer.trip;
+    assertTransition(trip, ASSIGNABLE_STATES);
 
+    let vehicleId: string | null = null;
     if (response === 'ACCEPTED') {
+      if (offer.driver.status !== 'AVAILABLE') {
+        throw new ConflictException('El conductor ya no esta disponible');
+      }
       const assignmentRows = await this.dataSource.query(
-        `SELECT vehicle_id FROM driver_vehicle_assignments WHERE driver_id = $1 AND active = true LIMIT 1`,
-        [offer.driver.userId],
+        `SELECT v.id AS vehicle_id
+         FROM driver_vehicle_assignments a
+         JOIN vehicles v ON v.id = a.vehicle_id
+         WHERE a.driver_id = $1 AND a.active = true
+           AND v.organization_id = $2 AND v.status = 'ACTIVE'
+         LIMIT 1`,
+        [offer.driver.userId, currentUser.organizationId],
       );
       if (assignmentRows.length === 0) {
-        throw new ConflictException('El conductor no tiene un vehiculo activo asignado');
+        throw new ConflictException('El conductor no tiene un vehiculo activo de su organización');
       }
+      vehicleId = assignmentRows[0].vehicle_id;
+    }
 
-      const fromStatus = trip.status;
+    // Toda validación de actor, organización, estado y unidad ocurre antes
+    // de persistir la respuesta de oferta.
+    const fromStatus = trip.status;
+    if (response === 'ACCEPTED') {
       trip.driver = { userId: offer.driver.userId } as any;
-      trip.vehicle = { id: assignmentRows[0].vehicle_id } as any;
+      trip.vehicle = { id: vehicleId } as any;
       trip.status = TripStatus.DRIVER_ASSIGNED;
       await this.trips.save(trip);
-
       await this.drivers.update(offer.driver.userId, { status: 'BUSY' as any });
-
       await this.tripEvents.save(
         this.tripEvents.create({
           trip: { id: trip.id } as any,
@@ -282,41 +334,69 @@ export class DispatchService {
           actorUser: { id: currentUser.id } as any,
         }),
       );
-      return trip;
     }
 
-    // REJECTED: reintenta con el siguiente candidato (el filtro de
-    // elegibilidad ya excluye a quien ya recibio una oferta)
-    return this.startDispatch(trip.id);
+    offer.response = response;
+    offer.respondedAt = new Date();
+    await this.offers.save(offer);
+
+    if (response === 'ACCEPTED') return trip;
+    return this.startDispatch(trip.id, currentUser.organizationId);
   }
 
-  async getPendingOffersForDriver(driverId: string): Promise<TripAssignmentOffer[]> {
-    return this.offers.find({
+  async getPendingOffersForDriver(driverId: string, organizationId: string): Promise<TripAssignmentOffer[]> {
+    const offers = await this.offers.find({
       where: { driver: { userId: driverId }, respondedAt: IsNull() },
-      relations: ['trip'],
+      relations: ['trip', 'trip.organization'],
       order: { offeredAt: 'DESC' },
     });
+    return offers.filter((offer) => offer.trip?.organization?.id === organizationId);
   }
 
   // ----------------------------------------------------------------
   // Ticket 7.11 — asignacion manual (operador)
   // ----------------------------------------------------------------
   async manualAssign(dto: ManualAssignDto, currentUser: AuthenticatedUser): Promise<Trip> {
-    const trip = await this.trips.findOne({ where: { id: dto.tripId } });
+    if (!currentUser.permissions.includes('dispatch.manual_assign')) {
+      throw new ForbiddenException('Requiere el permiso dispatch.manual_assign');
+    }
+
+    const trip = await this.trips.findOne({
+      where: { id: dto.tripId },
+      relations: ['organization'],
+    });
     if (!trip) throw new NotFoundException('Viaje no encontrado');
+    if (trip.organization?.id !== currentUser.organizationId) {
+      throw new ForbiddenException('El viaje no pertenece a tu organización');
+    }
     assertTransition(trip, ASSIGNABLE_STATES);
 
-    const driver = await this.drivers.findOne({ where: { userId: dto.driverId } });
-    if (!driver || driver.status !== 'AVAILABLE') {
+    const driver = await this.drivers.findOne({
+      where: { userId: dto.driverId },
+      relations: ['user', 'user.organization'],
+    });
+    if (!driver) throw new NotFoundException('Conductor no encontrado');
+    if (driver.user?.organization?.id !== currentUser.organizationId) {
+      throw new ForbiddenException('El conductor no pertenece a tu organización');
+    }
+    if (driver.user?.status !== 'ACTIVE') {
+      throw new ForbiddenException('La cuenta del conductor no está activa');
+    }
+    if (driver.status !== 'AVAILABLE') {
       throw new ConflictException('El conductor no esta disponible');
     }
 
     const assignmentRows = await this.dataSource.query(
-      `SELECT vehicle_id FROM driver_vehicle_assignments WHERE driver_id = $1 AND active = true LIMIT 1`,
-      [dto.driverId],
+      `SELECT v.id AS vehicle_id
+       FROM driver_vehicle_assignments a
+       JOIN vehicles v ON v.id = a.vehicle_id
+       WHERE a.driver_id = $1 AND a.active = true
+         AND v.organization_id = $2 AND v.status = 'ACTIVE'
+       LIMIT 1`,
+      [dto.driverId, currentUser.organizationId],
     );
     if (assignmentRows.length === 0) {
-      throw new ConflictException('El conductor no tiene un vehiculo activo asignado');
+      throw new ConflictException('El conductor no tiene un vehiculo activo de su organización');
     }
 
     const fromStatus = trip.status;
@@ -350,10 +430,11 @@ export class DispatchService {
 
     await this.auditService.record({
       actorUserId: currentUser.id,
+      organizationId: currentUser.organizationId,
       action: 'dispatch.manual_assign',
       entity: 'trips',
       entityId: trip.id,
-      newValue: { driverId: dto.driverId },
+      newValue: { driverId: dto.driverId, vehicleId: assignmentRows[0].vehicle_id },
       reason: dto.reason,
     });
 

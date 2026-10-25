@@ -30,7 +30,7 @@ La instrucción posterior **“realiza los cambios propuestos”** autoriza impl
 | D0-01 | A — conservar confirmación manual | Se preserva PAY y no se añade pasarela ni cobro real. |
 | D0-02 | B — separar roles | Seed, consulta de auditoría por tenant y resumen agregado BOARD añadidos. |
 | D0-03 | A — alta interna controlada | API de altas, registro/verificación documental y bloqueo de activación sin listas de tipos configuradas. |
-| D0-04 | B — cancelación por rol/estado | Actor desde JWT, validación de organización/participación/permiso/motivo y CANCELLED_BY_OPERATOR. |
+| D0-04 | A — política uniforme por usuario autenticado | Actor desde JWT, misma organización, estado previo al inicio, motivo obligatorio y CANCELLED_BY_USER. |
 | D0-05 | B — acuse/escalamiento/cierre de pánico | Entidad, persistencia, endpoints y auditoría; tiempos y responsables todavía pendientes. |
 | D0-06 | A — zona pequeña y turnos supervisados | Seleccionado; polígono, horario, plataformas y tamaño de grupo pendientes de definición. |
 | D0-07 | B — responsables/suplentes y una autoridad go/no-go | Seleccionado; faltan titulares, suplentes y canales nominales. |
@@ -150,7 +150,7 @@ La instrucción posterior **“realiza los cambios propuestos”** autoriza impl
 
 **Límite posterior al inicio:** decidir si se prohíbe la cancelación normal después de TRIP_IN_PROGRESS y se usa un flujo separado de incidente/disputa, o si existe una excepción de seguridad controlada. El código y la especificación actual describen que un viaje iniciado no se cancela mediante este endpoint.
 
-**Alternativa B implementada en esta rama:** actor derivado del JWT, participación, rol, organización, estados previos al inicio y motivo comprobados. No se añade penalización o excepción no documentada.
+**Implementación inicial:** se aplicó la alternativa B. **Revisión aprobada el 24 de octubre de 2026:** el usuario seleccionó D0-04=A. La política actual permite que cualquier usuario autenticado de la misma organización cancele antes del inicio; no permite cruzar organizaciones ni cancelar un viaje ya iniciado. El actor se registra desde el JWT y el motivo obligatorio existente se conserva. Se usa CANCELLED_BY_USER para no atribuir falsamente la cancelación al pasajero, conductor u operador del viaje.
 
 **Decisión humana requerida:** aprobar límites exactos por rol/estado, catálogo de motivos, si se penalizan cancelaciones y quién puede resolver excepciones.
 

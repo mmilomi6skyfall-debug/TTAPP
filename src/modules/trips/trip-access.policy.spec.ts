@@ -16,13 +16,21 @@ describe('trip access and cancellation policy', () => {
     expect(canViewTripForUser(facts, user('auditor-1', 'AUDITOR', 'org-b', ['trips.view']))).toBe(false);
     expect(canViewTripForUser(facts, user('admin-1', 'ADMIN'))).toBe(false);
   });
-  it('derives cancellation actor from authenticated role and trip participation', () => {
-    expect(cancellationStatusForUser(facts, user('passenger-1', 'PASSENGER'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_PASSENGER);
-    expect(cancellationStatusForUser(facts, user('driver-1', 'DRIVER'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_DRIVER);
-    expect(cancellationStatusForUser(facts, user('operator-1', 'OPERATOR', 'org-a', ['trips.cancel']), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_OPERATOR);
-    expect(() => cancellationStatusForUser(facts, user('passenger-2', 'PASSENGER'), 'Motivo válido')).toThrow(ForbiddenException);
-    expect(() => cancellationStatusForUser(facts, user('admin-1', 'ADMIN'), 'Motivo válido')).toThrow(ForbiddenException);
-    expect(() => cancellationStatusForUser(facts, user('passenger-1', 'PASSENGER', 'org-b'), 'Motivo válido')).toThrow(ForbiddenException);
-    expect(() => cancellationStatusForUser(facts, user('passenger-1', 'PASSENGER'), 'x')).toThrow(ForbiddenException);
+
+  describe('D0-04=A cancellation policy', () => {
+    it('allows any authenticated actor in the same organization before the service checks trip state', () => {
+      expect(cancellationStatusForUser(facts, user('passenger-1', 'PASSENGER'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_USER);
+      expect(cancellationStatusForUser(facts, user('passenger-2', 'PASSENGER'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_USER);
+      expect(cancellationStatusForUser(facts, user('driver-2', 'DRIVER'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_USER);
+      expect(cancellationStatusForUser(facts, user('admin-1', 'ADMIN'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_USER);
+      expect(cancellationStatusForUser(facts, user('auditor-1', 'AUDITOR'), 'Motivo válido')).toBe(TripStatus.CANCELLED_BY_USER);
+    });
+    it('denies cancellation across organizations', () => {
+      expect(() => cancellationStatusForUser(facts, user('passenger-1', 'PASSENGER', 'org-b'), 'Motivo válido')).toThrow(ForbiddenException);
+    });
+    it('retains input reason validation', () => {
+      expect(() => cancellationStatusForUser(facts, user('user-1', 'ADMIN'), 'x')).toThrow(ForbiddenException);
+      expect(() => cancellationStatusForUser(facts, user('user-1', 'ADMIN'), 'x'.repeat(501))).toThrow(ForbiddenException);
+    });
   });
 });

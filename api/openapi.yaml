@@ -302,6 +302,11 @@ paths:
     post:
       tags: [Trips]
       summary: Cancelar el viaje
+      description: >
+        Por D0-04=A, cualquier usuario autenticado puede cancelar un viaje
+        de su propia organización antes de que inicie el servicio. El backend
+        deriva el actor del JWT, exige motivo y deniega otros tenants o viajes
+        que ya iniciaron. No se confía en un campo cancelledBy del cliente.
       requestBody:
         required: true
         content:
@@ -996,6 +1001,7 @@ components:
         - CANCELLED_BY_PASSENGER
         - CANCELLED_BY_DRIVER
         - CANCELLED_BY_OPERATOR
+        - CANCELLED_BY_USER
         - CANCELLED_BY_SYSTEM
         - NO_SHOW
         - DISPUTED
