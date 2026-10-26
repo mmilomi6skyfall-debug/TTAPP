@@ -32,3 +32,6 @@ Abre `http://localhost:8080/web-panels/` en el navegador. También puede usarse 
 Integrar los componentes con la API autorizada, imponer permisos del lado servidor, consumir datos reales validados, persistir las acciones críticas en auditoría y agregar pruebas automatizadas de interfaz y de integración. La aprobación operativa del piloto es independiente de que estos prototipos se visualicen correctamente.
 
 La lógica de pagos no forma parte de estos prototipos y no debe modificarse como parte de su integración visual.
+## Validación automatizada
+
+El workflow `.github/workflows/validate-web-panels.yml` ejecuta `node scripts/validate-web-panels.mjs` cuando se modifican los paneles o el validador. Comprueba la estructura HTML básica, la sintaxis de JavaScript inline, enlaces locales y los avisos/capa cartográfica previstos. No sustituye una prueba visual en navegador ni una prueba de integración.
