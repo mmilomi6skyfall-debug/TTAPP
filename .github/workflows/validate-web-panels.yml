@@ -1,0 +1,32 @@
+name: Validate Web Panel Prototypes
+
+on:
+  pull_request:
+    paths:
+      - "web-panels/**"
+      - "scripts/validate-web-panels.mjs"
+      - ".github/workflows/validate-web-panels.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "web-panels/**"
+      - "scripts/validate-web-panels.mjs"
+      - ".github/workflows/validate-web-panels.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  static-validation:
+    name: Static HTML and JavaScript validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate static panels
+        run: node scripts/validate-web-panels.mjs
