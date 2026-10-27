@@ -300,6 +300,7 @@
       $("apiLoginButton").textContent = "Actualizar sesión";
       $("apiLogoutButton").hidden = false;
       await loadLiveData({ allowBusy: true });
+      if (!api.connected) return;
       if (refreshTimer) window.clearInterval(refreshTimer);
       refreshTimer = window.setInterval(() => {
         if (api.connected && !document.hidden && !busy) loadLiveData({ quiet: true });
@@ -785,10 +786,6 @@
     const container = $("fleetList");
     if (!container) return;
     container.replaceChildren();
-    const heading = $("fleetSidebarHeading");
-    const help = $("fleetSidebarHelp");
-    const count = $("sidebarCount");
-
     if (api.connected) {
       setText("fleetSidebarHeading", "Flota real no disponible");
       setText("sidebarCount", "—");
