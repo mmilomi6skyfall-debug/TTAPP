@@ -122,7 +122,7 @@ if (!boardJs.includes('credentials: "omit"') || !boardJs.includes('redirect: "er
 if (!boardJs.includes("^[\\s]*[=+\\-@]") || !boardJs.includes("new Blob")) {
   fail("board.js: falta protección de CSV frente a fórmulas y exportación mediante Blob.");
 }
-if (!boardJs.includes("No se dibujan taxis simulados") || !boardJs.includes("no está disponible en el contrato actual")) {
+if (!boardJs.includes("No se dibujan taxis porque el contrato no expone") || !boardJs.includes("series temporales financieras no están disponibles por el contrato actual")) {
   fail("Modo conectado debe advertir que no existe endpoint de consulta de flota/GPS ni series históricas.");
 }
 if (!/datos ficticios/i.test(dispatch) || !/no están conectadas al backend/i.test(dispatch)) {
