@@ -293,7 +293,7 @@
       }
       $("apiLoginButton").textContent = "Actualizar sesión";
       $("apiLogoutButton").hidden = false;
-      await loadLiveData();
+      await loadLiveData({ allowBusy: true });
       if (refreshTimer) window.clearInterval(refreshTimer);
       refreshTimer = window.setInterval(() => {
         if (api.connected && !document.hidden && !busy) loadLiveData({ quiet: true });
@@ -344,8 +344,8 @@
   }
 
   async function loadLiveData(options) {
-    if (!api.connected || busy) return;
     const opts = options || {};
+    if (!api.connected || (busy && !opts.allowBusy)) return;
     if (!opts.quiet) setText("apiConnectionMessage", "Consultando resumen, alertas y auditoría según los permisos de la sesión…");
     const jobs = [
       loadResource("summary", "board.summary.view", "/board/summary", (value) => { liveSummary = value; }),
@@ -403,6 +403,9 @@
       setBar("unitsAvailableBar", demoFleet.filter((unit) => unit.status === "Disponible").length / demoFleet.length * 100);
       setBar("unitsOfflineBar", demoFleet.filter((unit) => unit.status === "Fuera de Línea").length / demoFleet.length * 100);
       setText("kpiActivePercent", "Demo · " + Math.round(demoFleet.filter((unit) => unit.status === "En Servicio" || unit.status === "Disponible").length / demoFleet.length * 100) + "%");
+      setText("alertsTrend", demoAlerts.filter((alert) => alert.status !== "CLOSED").length ? "Requieren seguimiento (demo)" : "Sin alertas demo");
+      const demoDot = $("alertStatusDot");
+      if (demoDot) demoDot.className = "inline-block w-2 h-2 rounded-full " + (demoAlerts.some((alert) => alert.status !== "CLOSED") ? "bg-brand-red animate-ping" : "bg-brand-green");
       return;
     }
 
@@ -414,6 +417,9 @@
       setText("kpiRevenue", formatMXN(liveSummary.manuallyConfirmedAmount));
       setText("kpiCommission", formatMXN(liveSummary.accruedCommission));
       if (open !== null) setText("openAlerts", String(open));
+      setText("alertsTrend", open === null ? "Conteo no disponible" : (open ? "Requieren seguimiento" : "Sin alertas no cerradas"));
+      const dot = $("alertStatusDot");
+      if (dot) dot.className = "inline-block w-2 h-2 rounded-full " + (open ? "bg-brand-red animate-ping" : "bg-brand-green");
     } else {
       setText("kpiTrips", "—");
       setText("kpiRevenue", "—");
@@ -446,8 +452,8 @@
     const revenueNote = $("revenueChartUnavailable");
     const paymentNote = $("paymentChartUnavailable");
     const live = api.connected;
-    if (revenueCanvas && revenueCanvas.parentElement) revenueCanvas.parentElement.hidden = live;
-    if (paymentCanvas && paymentCanvas.parentElement) paymentCanvas.parentElement.hidden = live;
+    if (revenueCanvas) revenueCanvas.hidden = live;
+    if (paymentCanvas) paymentCanvas.hidden = live;
     if (revenueNote) revenueNote.hidden = !live;
     if (paymentNote) paymentNote.hidden = !live;
     if (live) {
@@ -639,7 +645,8 @@
         resourceState.alerts === "forbidden" ? "La sesión no tiene permiso panic.alerts.view." :
           "No se pudo consultar el endpoint de alertas. No se sustituye por alertas de muestra."));
       setText("alertsBadge", resourceState.alerts === "forbidden" ? "Sin permiso" : "Error de consulta");
-      setText("openAlerts", "—");
+      const aggregateCount = api.connected && resourceState.summary === "ok" ? activeAlertCount(liveSummary) : null;
+      setText("openAlerts", aggregateCount === null ? "—" : String(aggregateCount));
       return;
     }
 
@@ -785,7 +792,7 @@
         mapMarkers.set(unit.id, marker);
       });
       const demoAlert = demoAlerts[0];
-      if (demoAlert && validCoordinates(demoAlert.location)) {
+      if (demoAlert && normalizeStatus(demoAlert.status) !== "CLOSED" && validCoordinates(demoAlert.location)) {
         const marker = L.marker([demoAlert.location.lat, demoAlert.location.lng], { icon: markerIcon("alert"), title: demoAlert.id }).addTo(markerLayer);
         marker.bindPopup(popupNode("Alerta " + demoAlert.id, [demoAlert.demoDescription, "Solo demostración"], "ALERTA FICTICIA"));
         mapMarkers.set(demoAlert.id, marker);
@@ -1015,9 +1022,40 @@
     renderActivity();
     renderMapMarkers();
     renderChartMode();
+    renderModeBanner();
     updateLastUpdated();
     setText("year", String(new Date().getFullYear()));
+    const exportButton = $("exportCsvButton");
+    if (exportButton) {
+      exportButton.disabled = api.connected && !hasPermission("audit.view");
+      exportButton.title = exportButton.disabled ? "Tu sesión no tiene permiso audit.view" : "Exportar la auditoría filtrada a CSV";
+    }
+    const simButton = $("simToggleBtn");
+    if (simButton) {
+      simButton.disabled = api.connected;
+      simButton.title = api.connected ? "La simulación está deshabilitada durante una sesión real" : "Mover solo marcadores ficticios";
+    }
     if (window.lucide && typeof window.lucide.createIcons === "function") window.lucide.createIcons();
+  }
+
+  function renderModeBanner() {
+    const banner = $("prototypeWarning");
+    if (!banner) return;
+    banner.replaceChildren();
+    const header = $("headerDataMode");
+    if (api.connected) {
+      banner.className = "rounded-xl data-state-banner connected p-4 text-sm shadow-md";
+      banner.appendChild(el("strong", "", "MODO CONECTADO — INFORMACIÓN CONSULTADA AL BACKEND."));
+      banner.appendChild(document.createTextNode(" Solo se presentan recursos que responde la API con los permisos de la sesión. La lista de flota/GPS y las series temporales financieras no están disponibles en el contrato actual."));
+      if (header) header.textContent = "Sesión autenticada · fuente de datos: API · flota/GPS no disponible";
+    } else {
+      banner.className = "rounded-xl border border-brand-amber/50 bg-brand-amber/10 p-4 text-sm text-brand-amber shadow-md";
+      banner.appendChild(el("strong", "", "PROTOTIPO — DATOS FICTICIOS."));
+      banner.appendChild(document.createTextNode(" La simulación mueve marcadores locales. No hay autenticación ni conexión al backend en este modo. No utilizar para gestionar viajes reales."));
+      if (header) header.textContent = "Modo demo · datos ficticios · sin conexión al backend";
+    }
+    const legend = $("mapLegend");
+    if (legend) legend.hidden = api.connected;
   }
 
   function initializeEvents() {
@@ -1040,8 +1078,8 @@
     $("alertsContainer").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-alert-action],button[data-alert-id]");
       if (!button) return;
-      if (button.dataset.alertAction) openAlertAction(button.dataset.alertId, button.dataset.alertAction);
-      else if (button.dataset.alertId) focusAlertOnMap(button.dataset.alertId);
+      if (button.dataset.alertAction === "map") focusAlertOnMap(button.dataset.alertId);
+      else if (button.dataset.alertAction) openAlertAction(button.dataset.alertId, button.dataset.alertAction);
     });
     $("alertActionForm").addEventListener("submit", submitAlertAction);
     $("alertDialogCancel").addEventListener("click", closeAlertDialog);
@@ -1087,8 +1125,8 @@
     if (api.connected) return;
     demoFleet.forEach((unit) => {
       if (unit.status === "En Servicio") {
-        unit.lat += (Math.random() - 0.5) * 0.00045;
-        unit.lng += (Math.random() - 0.5) * 0.00045;
+        unit.lat = Math.min(20.192, Math.max(20.158, unit.lat + (Math.random() - 0.5) * 0.00045));
+        unit.lng = Math.min(-98.031, Math.max(-98.073, unit.lng + (Math.random() - 0.5) * 0.00045));
       }
     });
     renderMapMarkers();
