@@ -203,7 +203,7 @@
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20">Huauchinango, Pue.</span>
                     </div>
                     <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Junta Administrativa · Taxis de Huauchinango</h1>
-                    <p class="text-xs sm:text-sm text-brand-muted">Panel demostrativo · datos ficticios · sin conexión a GPS ni API</p>
+                    <p id="headerDataMode" class="text-xs sm:text-sm text-brand-muted">Modo demo · datos ficticios · sin conexión al backend</p>
                 </div>
             </div>
 
@@ -216,22 +216,22 @@
 
                 <button id="simToggleBtn" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all">
                     <i data-lucide="play" class="w-4 h-4 text-brand-green" id="simIcon"></i>
-                    <span id="simText">Simulación GPS: Inactiva</span>
+                    <span id="simText">Simulación demo: Inactiva</span>
                 </button>
 
-                <button class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all" title="Exportar actividad a CSV">
+                <button id="exportCsvButton" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all" title="Exportar la auditoría filtrada a CSV">
                     <i data-lucide="download" class="w-4 h-4 text-brand-cyan"></i>
                     <span class="hidden sm:inline">Exportar CSV</span>
                 </button>
 
-                <button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 hover:bg-brand-cyan/20 text-brand-cyan text-xs font-semibold transition-all">
+                <button id="refreshDashboardButton" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 hover:bg-brand-cyan/20 text-brand-cyan text-xs font-semibold transition-all">
                     <i data-lucide="rotate-cw" class="w-4 h-4" id="refreshIcon"></i>
                     <span>Actualizar</span>
                 </button>
             </div>
         </header>
 
-        <div role="status" class="rounded-xl border border-brand-amber/50 bg-brand-amber/10 p-4 text-sm text-brand-amber shadow-md">
+        <div id="prototypeWarning" role="status" class="rounded-xl border border-brand-amber/50 bg-brand-amber/10 p-4 text-sm text-brand-amber shadow-md">
             <strong>PROTOTIPO — DATOS FICTICIOS.</strong> La simulación GPS solo mueve marcadores localmente. No hay autenticación, conexión con la API, telemetría real ni datos financieros verificados. No utilizar para gestionar viajes reales.
         </div>
 
@@ -342,7 +342,7 @@
                     </span>
                 </div>
                 <div class="mt-2 text-xs text-brand-muted flex items-center justify-between">
-                    <span>Atención a conductor</span>
+                    <span>Alertas de pasajero y conductor</span>
                     <span id="alertStatusDot" class="inline-block w-2 h-2 rounded-full bg-brand-red animate-ping"></span>
                 </div>
             </div>
@@ -425,7 +425,7 @@
                     </div>
 
                     <!-- Map Legend Overlay -->
-                    <div class="absolute bottom-3 left-3 z-[400] bg-brand-surface/90 backdrop-blur-md border border-brand-border rounded-xl p-3 text-[11px] text-brand-muted space-y-1.5 shadow-lg no-print">
+                    <div id="mapLegend" class="absolute bottom-3 left-3 z-[400] bg-brand-surface/90 backdrop-blur-md border border-brand-border rounded-xl p-3 text-[11px] text-brand-muted space-y-1.5 shadow-lg no-print">
                         <div class="font-semibold text-white flex items-center gap-1">
                             <i data-lucide="navigation-2" class="w-3.5 h-3.5 text-brand-cyan"></i>
                             Simbología Taxis Huauchinango
@@ -466,14 +466,15 @@
                                     <i data-lucide="line-chart" class="w-4 h-4 text-brand-cyan"></i>
                                     Flujo de Ingresos
                                 </h2>
-                                <p class="text-xs text-brand-muted">Estimación por franja horaria en Huauchinango</p>
+                                <p class="text-xs text-brand-muted">Datos ilustrativos; no es una serie financiera real</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-surface border border-brand-border text-brand-cyan">
                                 MXN ($)
                             </span>
                         </div>
                         <div class="h-56 relative w-full">
-                            <canvas id="revenueChart"></canvas>
+                            <canvas id="revenueChart" aria-label="Gráfica de ingresos de demostración" role="img"></canvas>
+                            <p id="revenueChartUnavailable" class="text-xs text-brand-muted p-4" hidden></p>
                         </div>
                     </div>
 
@@ -484,14 +485,15 @@
                                     <i data-lucide="pie-chart" class="w-4 h-4 text-brand-green"></i>
                                     Formas de Pago
                                 </h2>
-                                <p class="text-xs text-brand-muted">Efectivo vs Pago Digital</p>
+                                <p class="text-xs text-brand-muted">Distribución ficticia de formas de pago</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-surface border border-brand-border text-brand-muted">
                                 % Total
                             </span>
                         </div>
                         <div class="h-56 relative flex items-center justify-center">
-                            <canvas id="paymentChart"></canvas>
+                            <canvas id="paymentChart" aria-label="Gráfica de formas de pago de demostración" role="img"></canvas>
+                            <p id="paymentChartUnavailable" class="text-xs text-brand-muted p-4" hidden></p>
                         </div>
                     </div>
                 </div>
