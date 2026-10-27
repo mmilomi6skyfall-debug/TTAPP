@@ -271,13 +271,14 @@
     setBusy(true);
     try {
       const baseUrl = normalizeBaseUrl($("apiBaseUrl").value);
-      const email = $("apiEmail").value.trim();
+      const identifier = $("apiEmail").value.trim();
       const password = $("apiPassword").value;
-      if (!email || !password) throw new Error("Escribe el correo y la contraseña de una cuenta autorizada.");
+      if (!identifier || !password) throw new Error("Escribe el correo o teléfono y la contraseña de una cuenta autorizada.");
+      const identity = identifier.includes("@") ? { email: identifier } : { phone: identifier };
       setConnectionStatus("demo", "Autenticando…", "Enviando credenciales al endpoint /auth/login. La contraseña no se guarda.");
       const result = await apiRequestWithBase(baseUrl, "/auth/login", {
         method: "POST",
-        body: { email, password },
+        body: Object.assign({}, identity, { password }),
         auth: false
       });
       if (!result || typeof result.accessToken !== "string" || !result.accessToken) {
