@@ -562,6 +562,10 @@
     const category = $("activityFilter").value;
     const from = $("activityFrom").value;
     const to = $("activityTo").value;
+    if (from && to && from > to) {
+      tbody.appendChild(emptyRow("Rango de fechas inválido: la fecha inicial es posterior a la final."));
+      return;
+    }
     const filtered = rows.filter((row) => {
       const haystack = [row.actorLabel, row.action, row.entity, row.entityId, row.reason].join(" ").toLocaleLowerCase("es-MX");
       if (query && !haystack.includes(query)) return false;
@@ -681,6 +685,7 @@
       const desc = el("p", "text-[11px] text-brand-muted leading-relaxed", alertDescription(alert));
       const time = el("p", "text-[10px] text-brand-muted", formatDateTime(alertDate(alert)) + " · " + formatElapsed(alertDate(alert)));
       card.append(top, who, desc, time);
+      if (api.connected && status !== "CLOSED") card.appendChild(el("p", "text-[10px] text-brand-muted", "Responsable operativo: no incluido en la respuesta actual de la API."));
 
       if (alert.escalationNote) card.appendChild(el("p", "text-[11px] text-brand-amber", "Nota de escalación: " + alert.escalationNote));
       if (alert.closureNote) card.appendChild(el("p", "text-[11px] text-brand-muted", "Nota de cierre: " + alert.closureNote));
@@ -951,7 +956,7 @@
 
   function csvSafe(value) {
     let text = value === null || value === undefined ? "" : String(value);
-    if (/^[\t\r ]*[=+\-@]/.test(text)) text = "'" + text;
+    if (/^[\s]*[=+\-@]/.test(text)) text = "'" + text;
     return '"' + text.replace(/"/g, '""') + '"';
   }
 
@@ -985,7 +990,7 @@
     }
     const headings = ["Fecha", "Actor", "Accion", "Recurso", "ID de recurso", "Motivo", "Origen del dato"];
     const csv = [headings.map(csvSafe).join(",")].concat(rows.map((row) => [
-      row.createdAt ? new Date(row.createdAt).toISOString() : "",
+      row.createdAt && !Number.isNaN(new Date(row.createdAt).getTime()) ? new Date(row.createdAt).toISOString() : (row.createdAt || ""),
       row.actorLabel,
       row.action,
       row.entity,
