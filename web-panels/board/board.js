@@ -291,6 +291,7 @@
       api.role = typeof claims.role === "string" ? claims.role : (result.user && result.user.role) || "UNKNOWN";
       api.user = result.user || null;
       api.connected = true;
+      stopDemoSimulation();
       $("apiPassword").value = "";
       setText("apiPermissionsSummary", "Rol " + api.role + " · " + api.permissions.size + " permisos declarados en el JWT. El backend vuelve a validar cada operación.");
       if (!api.permissions.size) {
@@ -554,6 +555,12 @@
     }));
   }
 
+  function hasInvalidDateRange() {
+    const from = $("activityFrom").value;
+    const to = $("activityTo").value;
+    return Boolean(from && to && from > to);
+  }
+
   function renderActivity() {
     const tbody = $("activityTableBody");
     if (!tbody) return;
@@ -570,7 +577,7 @@
     const category = $("activityFilter").value;
     const from = $("activityFrom").value;
     const to = $("activityTo").value;
-    if (from && to && from > to) {
+    if (hasInvalidDateRange()) {
       tbody.appendChild(emptyRow("Rango de fechas inválido: la fecha inicial es posterior a la final."));
       return;
     }
@@ -1064,6 +1071,10 @@
   }
 
   function exportDataCSV() {
+    if (hasInvalidDateRange()) {
+      showToast("No se puede exportar: la fecha inicial es posterior a la fecha final.", "warning");
+      return;
+    }
     if (api.connected && !hasPermission("audit.view")) {
       showToast("La sesión no tiene permiso para exportar la bitácora.", "danger");
       return;
@@ -1189,6 +1200,17 @@
 
   let demoTimer = null;
   let demoSimulationActive = false;
+  function stopDemoSimulation() {
+    if (demoTimer) window.clearInterval(demoTimer);
+    demoTimer = null;
+    demoSimulationActive = false;
+    const button = $("simToggleBtn");
+    const icon = $("simIcon");
+    if (button) button.classList.remove("animate-pulse");
+    if (icon) icon.setAttribute("data-lucide", "play");
+    setText("simText", "Simulación demo: Inactiva");
+  }
+
   function toggleDemoSimulation() {
     if (api.connected) {
       showToast("La simulación no está disponible durante una sesión real.", "warning");
