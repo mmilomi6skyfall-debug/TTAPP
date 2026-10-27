@@ -2,7 +2,7 @@
 
 **Objetivo definitivo del producto:** construir un ecosistema digital integral para la operación de taxis de Huauchinango, Puebla, conectado a un backend común y compuesto por cuatro superficies: (1) consola web de la Junta Administrativa, (2) cabina web de despacho, (3) aplicación móvil del pasajero y (4) aplicación móvil del conductor. **Las dos aplicaciones móviles deben ser compatibles con Android e iOS.**
 
-El núcleo del repositorio es el backend NestJS, sus contratos, pruebas y herramientas. También incluye prototipos web estáticos iniciales en `web-panels/` para la Junta Administrativa y la Cabina de Despacho; no están conectados al backend ni tienen autenticación o persistencia. La descripción del ecosistema es el objetivo de producto y de arquitectura; no significa que las cuatro interfaces estén terminadas. Cada superficie y cada flujo se considera implementado solo cuando existe código verificable y evidencia de pruebas.
+El núcleo del repositorio es el backend NestJS, sus contratos, pruebas y herramientas. También incluye prototipos web estáticos en `web-panels/`: la Junta Administrativa puede autenticarse y consultar resumen agregado, alertas de pánico y auditoría mediante endpoints existentes; no incluye todavía consulta real de flota/GPS, autenticación de producción integrada con un gestor de sesión, ni acceso persistente desde la Cabina de Despacho. La descripción del ecosistema es el objetivo de producto y de arquitectura; no significa que las cuatro interfaces estén terminadas. Cada superficie y cada flujo se considera implementado solo cuando existe código verificable y evidencia de pruebas.
 
 El documento rector es [`docs/PRODUCT_OBJECTIVE.md`](docs/PRODUCT_OBJECTIVE.md). Define el alcance final, las responsabilidades de las cuatro interfaces, los principios de arquitectura, el orden de entrega y las condiciones para autorizar el piloto. Los planes y PR futuros deben alinearse con él o documentar explícitamente una excepción aprobada.
 
@@ -18,7 +18,7 @@ Las cuatro superficies deben consumir servicios y reglas de negocio comunes. Un 
 ## Estado y límites del repositorio
 
 - Backend actual: NestJS, TypeScript y API descrita en `api/openapi.yaml`.
-- Prototipos web: [`web-panels/README.md`](web-panels/README.md) explica cómo abrirlos y sus límites. El mapa de Junta Administrativa usa cartografía real de OpenStreetMap, pero sus marcadores, viajes, conductores, ingresos y alertas son datos ficticios.
+- Paneles web: [`web-panels/README.md`](web-panels/README.md) explica el modo demo, la integración parcial por API y los bloqueos restantes. Al conectar la Junta Administrativa, los resúmenes, alertas y auditoría proceden del backend según permisos; la flota/GPS y las gráficas históricas siguen sin endpoint y no se inventan.
 - Persistencia prevista por la configuración existente: PostgreSQL con PostGIS y Redis para los servicios que lo requieran.
 - La compatibilidad Android/iOS es un requisito del producto. La tecnología móvil y el destino de despliegue deben decidirse y documentarse a partir de la inspección técnica; no se presupone Flutter, React Native, Expo ni una nube determinada.
 - No se considera verificada la integración extremo a extremo real con base de datos, Redis y dispositivos por el mero hecho de aprobar pruebas unitarias o un smoke test aislado.
