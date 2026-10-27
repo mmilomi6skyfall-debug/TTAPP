@@ -382,19 +382,19 @@
 
                 <!-- Map Filter Buttons -->
                 <div class="flex flex-wrap items-center gap-1.5 no-print" id="mapFilters">
-                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-cyan/20 border border-brand-cyan text-brand-cyan transition-all" data-filter="all">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-cyan/20 border border-brand-cyan text-brand-cyan transition-all" data-filter="all" aria-pressed="true">
                         Todas (<span id="countAll">12</span>)
                     </button>
-                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-green transition-all" data-filter="En Servicio">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-green transition-all" data-filter="En Servicio" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-green inline-block mr-1"></span>En Servicio (<span id="countService">6</span>)
                     </button>
-                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-cyan transition-all" data-filter="Disponible">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-cyan transition-all" data-filter="Disponible" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-cyan inline-block mr-1"></span>Libres / Disponibles (<span id="countAvailable">4</span>)
                     </button>
-                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-amber transition-all" data-filter="Fuera de Línea">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-amber transition-all" data-filter="Fuera de Línea" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-amber inline-block mr-1"></span>Fuera de línea (<span id="countOffline">1</span>)
                     </button>
-                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-red transition-all" data-filter="Alerta">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-red transition-all" data-filter="Alerta" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-red inline-block mr-1"></span>Alerta (<span id="countAlerts">1</span>)
                     </button>
                 </div>
@@ -406,9 +406,9 @@
                 <div class="lg:col-span-4 bg-brand-surface/70 border border-brand-border rounded-xl p-3 flex flex-col h-full overflow-hidden">
                     <div class="flex items-center justify-between mb-2 pb-2 border-b border-brand-border/60">
                         <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                            <i data-lucide="list" class="w-3.5 h-3.5 text-brand-cyan"></i> Taxis Registrados (<span id="sidebarCount">12</span>)
+                            <i data-lucide="list" class="w-3.5 h-3.5 text-brand-cyan" aria-hidden="true"></i> <span id="fleetSidebarHeading">Taxis de demostración</span> (<span id="sidebarCount">12</span>)
                         </span>
-                        <span class="text-[11px] text-brand-muted">Clic para enfocar en Huauchinango</span>
+                        <span id="fleetSidebarHelp" class="text-[11px] text-brand-muted">Selecciona una unidad ficticia para centrar el mapa</span>
                     </div>
 
                     <!-- Scrollable Fleet List -->
