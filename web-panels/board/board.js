@@ -194,9 +194,20 @@
     if (!raw) return null;
     const contentType = response.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
-      try { return JSON.parse(raw); } catch { return { message: "La API devolvió JSON inválido." }; }
+      try {
+        return JSON.parse(raw);
+      } catch {
+        const error = new Error("La API devolvió JSON inválido.");
+        error.status = response.status;
+        throw error;
+      }
     }
-    return { message: "La API devolvió una respuesta no JSON." };
+    if (response.ok) {
+      const error = new Error("La API devolvió una respuesta no JSON.");
+      error.status = response.status;
+      throw error;
+    }
+    return { message: "La API devolvió una respuesta de error no JSON." };
   }
 
   async function apiRequest(path, options) {
