@@ -206,6 +206,8 @@
     if (opts.body !== undefined) headers["Content-Type"] = "application/json";
     if (api.token && opts.auth !== false) headers.Authorization = "Bearer " + api.token;
     let response;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
       response = await fetch(api.baseUrl + path, {
         method: opts.method || "GET",
@@ -214,10 +216,14 @@
         credentials: "omit",
         cache: "no-store",
         redirect: "error",
-        mode: "cors"
+        mode: "cors",
+        signal: controller.signal
       });
-    } catch {
+    } catch (error) {
+      if (error && error.name === "AbortError") throw new Error("La API tardó más de 15 segundos en responder.");
       throw new Error("No se pudo contactar la API. Comprueba URL, HTTPS, disponibilidad del backend y CORS.");
+    } finally {
+      window.clearTimeout(timeoutId);
     }
     const payload = await readResponse(response);
     if (!response.ok) {
@@ -912,7 +918,7 @@
       showToast("La alerta no contiene coordenadas válidas.", "warning");
       return;
     }
-    if (api.connected && normalizeStatus(item.status) === "CLOSED") {
+    if (normalizeStatus(item.status) === "CLOSED") {
       showToast("La ubicación de una alerta cerrada no se centra en el mapa operativo.", "warning");
       return;
     }
@@ -1021,6 +1027,12 @@
       renderAll();
       if (api.connected) await loadLiveData({ quiet: true });
     } catch (error) {
+      if (error && error.status === 401 && api.connected) {
+        closeAlertDialog();
+        disconnect("La sesión expiró o el token fue rechazado. Vuelve a conectarte.", "error");
+        showToast("Sesión expirada. El token se eliminó de memoria.", "danger");
+        return;
+      }
       setText("alertDialogError", error && error.message ? error.message : "No se pudo completar la acción.");
       $("alertDialogError").hidden = false;
       showToast(error && error.message ? error.message : "No se pudo completar la acción.", "danger");
