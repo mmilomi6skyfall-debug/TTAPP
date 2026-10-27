@@ -86,7 +86,7 @@ try { boardJs = await readFile("web-panels/board/board.js", "utf8"); } catch {}
 
 if (!entry.includes('href="dispatch/index.html"')) fail("La entrada no enlaza a la Cabina de Despacho.");
 if (!entry.includes('href="board/index.html"')) fail("La entrada no enlaza a la Junta Administrativa.");
-if (!entry.includes("marcadores no representan taxis reales")) fail("La entrada debe advertir que las posiciones de los taxis son ficticias.");
+if (!/posiciones de taxis.*ficticias|ubicaciones.*ficticias/i.test(entry)) fail("La entrada debe advertir que las posiciones de los taxis son ficticias.");
 
 for (const id of [
   "apiConnectForm", "apiBaseUrl", "apiEmail", "apiPassword", "apiLoginButton",
