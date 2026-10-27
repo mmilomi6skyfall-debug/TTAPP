@@ -775,6 +775,80 @@
     return root;
   }
 
+  function renderFleetSidebar() {
+    const container = $("fleetList");
+    if (!container) return;
+    container.replaceChildren();
+    const heading = $("fleetSidebarHeading");
+    const help = $("fleetSidebarHelp");
+    const count = $("sidebarCount");
+
+    if (api.connected) {
+      setText("fleetSidebarHeading", "Flota real no disponible");
+      setText("sidebarCount", "—");
+      setText("fleetSidebarHelp", "La API todavía no ofrece consulta de flota/GPS.");
+      container.appendChild(el("div", "p-4 text-center text-xs text-brand-muted border border-dashed border-brand-border rounded-xl",
+        "No se muestran unidades reales porque el contrato actual no incluye un endpoint de lectura del padrón ni de las últimas posiciones. Esta lista no se reemplaza por marcadores ficticios."));
+      ["countAll", "countService", "countAvailable", "countOffline", "countAlerts"].forEach((id) => setText(id, "—"));
+      return;
+    }
+
+    const filtered = demoFleet.filter((unit) => activeMapFilter === "all" || unit.status === activeMapFilter);
+    setText("fleetSidebarHeading", "Taxis de demostración");
+    setText("sidebarCount", String(filtered.length));
+    setText("fleetSidebarHelp", "Selecciona una unidad ficticia para centrar el mapa.");
+    const counts = {
+      all: demoFleet.length,
+      "En Servicio": demoFleet.filter((unit) => unit.status === "En Servicio").length,
+      Disponible: demoFleet.filter((unit) => unit.status === "Disponible").length,
+      "Fuera de Línea": demoFleet.filter((unit) => unit.status === "Fuera de Línea").length,
+      Alerta: demoFleet.filter((unit) => unit.status === "Alerta").length
+    };
+    setText("countAll", counts.all);
+    setText("countService", counts["En Servicio"]);
+    setText("countAvailable", counts.Disponible);
+    setText("countOffline", counts["Fuera de Línea"]);
+    setText("countAlerts", counts.Alerta);
+
+    if (!filtered.length) {
+      container.appendChild(el("div", "p-4 text-center text-xs text-brand-muted", "No hay unidades de demostración para este filtro."));
+      return;
+    }
+    filtered.forEach((unit) => {
+      const button = el("button", "w-full text-left p-2.5 rounded-xl bg-brand-bg/60 hover:bg-brand-hover border border-brand-border/60 hover:border-brand-cyan/40 transition-all space-y-1");
+      button.type = "button";
+      button.dataset.unitId = unit.id;
+      button.setAttribute("aria-label", "Centrar unidad ficticia " + unit.id + ", estado " + unit.status);
+      const top = el("span", "flex items-center justify-between gap-2");
+      const id = el("strong", "font-mono text-xs font-bold text-white", unit.id);
+      const statusClass = unit.status === "En Servicio" ? "text-brand-green" :
+        unit.status === "Disponible" ? "text-brand-cyan" :
+        unit.status === "Fuera de Línea" ? "text-brand-amber" : "text-brand-red";
+      const status = el("span", "text-[10px] font-semibold " + statusClass, unit.status);
+      top.append(id, status);
+      const driver = el("span", "block text-[11px] text-brand-muted", unit.driver);
+      const location = el("span", "block text-[10px] text-brand-muted", unit.location);
+      const speed = el("span", "block text-[10px] text-brand-muted", "Velocidad ficticia: " + unit.speed);
+      button.append(top, driver, location, speed);
+      container.appendChild(button);
+    });
+  }
+
+  function focusUnitOnMap(id) {
+    if (api.connected) {
+      showToast("La API aún no ofrece posiciones de flota; no se puede centrar un taxi real.", "warning");
+      return;
+    }
+    const unit = demoFleet.find((item) => item.id === id);
+    if (!unit || !map) return;
+    if (activeMapFilter !== "all" && activeMapFilter !== unit.status) filterMapUnits("all");
+    map.flyTo([unit.lat, unit.lng], 16, { duration: 0.6 });
+    window.setTimeout(() => {
+      const marker = mapMarkers.get(unit.id);
+      if (marker) marker.openPopup();
+    }, 650);
+  }
+
   function renderMapMarkers() {
     if (!map || !markerLayer) return;
     markerLayer.clearLayers();
@@ -867,6 +941,7 @@
       button.setAttribute("aria-pressed", selected ? "true" : "false");
     });
     renderMapMarkers();
+    renderFleetSidebar();
   }
 
   function openAlertAction(id, action) {
@@ -1026,6 +1101,7 @@
     renderAlerts();
     renderActivity();
     renderMapMarkers();
+    renderFleetSidebar();
     renderChartMode();
     renderModeBanner();
     updateLastUpdated();
@@ -1079,6 +1155,10 @@
     $("mapFilters").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-filter]");
       if (button && !api.connected) filterMapUnits(button.dataset.filter);
+    });
+    $("fleetList").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-unit-id]");
+      if (button) focusUnitOnMap(button.dataset.unitId);
     });
     $("alertsContainer").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-alert-action],button[data-alert-id]");
@@ -1135,6 +1215,7 @@
       }
     });
     renderMapMarkers();
+    renderFleetSidebar();
   }
 
   function start() {
