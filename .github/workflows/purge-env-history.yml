@@ -55,27 +55,104 @@ jobs:
           echo "Ramas detectadas antes de la depuración: ${BEFORE_BRANCHES}"
           echo "Etiquetas detectadas antes de la depuración: ${BEFORE_TAGS}"
 
+          FILTER_LOG="${RUNNER_TEMP}/git-filter-repo.log"
           git -C "$MIRROR_DIR" filter-repo \
             --sensitive-data-removal \
             --invert-paths \
             --path .env.development \
             --path .env.test \
             --path .env.staging \
-            --path .env.production
+            --path .env.production 2>&1 | tee "$FILTER_LOG"
 
           FILTER_DIR="$(git -C "$MIRROR_DIR" rev-parse --absolute-git-dir)/filter-repo"
           CHANGED_REFS="${FILTER_DIR}/changed-refs"
+          AFFECTED_PULL_REFS=""
           if [[ -f "$CHANGED_REFS" ]]; then
-            AFFECTED_PULL_REFS="$(grep -E '^refs/pull/[0-9]+/(head|merge)$' "$CHANGED_REFS" || true)"
-            if [[ -n "$AFFECTED_PULL_REFS" ]]; then
-              {
-                echo "### Referencias internas de PR afectadas"
-                echo "GitHub no permite actualizar estas referencias mediante push:"
-                printf '%s\n' "$AFFECTED_PULL_REFS"
-                echo "Solicitar a GitHub Support la purga de referencias/cachés solo si el contenido se considera información confidencial no mitigable mediante rotación."
-              } >> "$GITHUB_STEP_SUMMARY"
-            fi
+            AFFECTED_PULL_REFS="$(grep -E '^refs/pull/[0-9]+/(head|merge)
+
+          AFTER_BRANCHES="$(git -C "$MIRROR_DIR" for-each-ref --format='%(refname)' refs/heads | wc -l)"
+          AFTER_TAGS="$(git -C "$MIRROR_DIR" for-each-ref --format='%(refname)' refs/tags | wc -l)"
+          if [[ "$BEFORE_BRANCHES" -ne "$AFTER_BRANCHES" || "$BEFORE_TAGS" -ne "$AFTER_TAGS" ]]; then
+            echo "::error::Cambió el número de ramas o etiquetas durante el filtrado; se detiene el push para revisión."
+            exit 1
           fi
+
+          for file in .env.development .env.test .env.staging .env.production; do
+            escaped_file="$(printf '%s' "$file" | sed 's/[.]/\\./g')"
+            if git -C "$MIRROR_DIR" rev-list --objects --all | grep -E " ${escaped_file}$" >/dev/null; then
+              echo "::error::La verificación previa al push encontró una referencia histórica a ${file}."
+              exit 1
+            fi
+          done
+
+          git -C "$MIRROR_DIR" remote set-url origin "$REPOSITORY_URL"
+          git -C "$MIRROR_DIR" config remote.origin.mirror false
+          git -C "$MIRROR_DIR" push --force --prune origin \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          git init --bare "$VERIFY_DIR"
+          git -C "$VERIFY_DIR" remote add origin "$REPOSITORY_URL"
+          git -C "$VERIFY_DIR" fetch --force origin \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
+
+          for file in .env.development .env.test .env.staging .env.production; do
+            escaped_file="$(printf '%s' "$file" | sed 's/[.]/\\./g')"
+            if git -C "$VERIFY_DIR" rev-list --objects --all | grep -E " ${escaped_file}$" >/dev/null; then
+              echo "::error::La verificación remota encontró todavía una referencia a ${file} en ramas o etiquetas."
+              exit 1
+            fi
+          done
+
+          AFTER_REMOTE_BRANCHES="$(git -C "$VERIFY_DIR" for-each-ref --format='%(refname)' refs/heads | wc -l)"
+          AFTER_REMOTE_TAGS="$(git -C "$VERIFY_DIR" for-each-ref --format='%(refname)' refs/tags | wc -l)"
+          if [[ "$BEFORE_BRANCHES" -ne "$AFTER_REMOTE_BRANCHES" || "$BEFORE_TAGS" -ne "$AFTER_REMOTE_TAGS" ]]; then
+            echo "::error::El número de ramas o etiquetas remoto no coincide después del push."
+            exit 1
+          fi
+
+          {
+            echo "### Depuración histórica completada"
+            echo "- Ramas reescritas: ${AFTER_REMOTE_BRANCHES}"
+            echo "- Etiquetas reescritas: ${AFTER_REMOTE_TAGS}"
+            echo "- Archivos retirados de la historia: .env.development, .env.test, .env.staging, .env.production"
+            echo "- Verificación de refs remotas de ramas y etiquetas: correcta."
+            echo "- Las referencias internas de PR/cachés de GitHub no son actualizables mediante push; revisa la lista anterior y el proceso de GitHub Support cuando corresponda."
+          } >> "$GITHUB_STEP_SUMMARY"
+ "$CHANGED_REFS" || true)"
+          fi
+
+          REPORT_PATH="${RUNNER_TEMP}/ttapp-env-history-purge-report.txt"
+          {
+            echo "TTAPP environment-file history purge"
+            echo "Repository: ${GITHUB_REPOSITORY}"
+            echo "First changed commits:"
+            sed -n '/NOTE: First Changed Commit(s)/,/NOTE: LFS/p' "$FILTER_LOG"
+            echo
+            echo "Affected internal pull-request refs:"
+            if [[ -n "$AFFECTED_PULL_REFS" ]]; then
+              printf '%s\n' "$AFFECTED_PULL_REFS"
+            else
+              echo "None reported by git-filter-repo."
+            fi
+            echo
+            echo "Git LFS: not in use according to git-filter-repo."
+            echo "Files removed from all fetched refs: .env.development, .env.test, .env.staging, .env.production"
+          } > "$REPORT_PATH"
+          echo "PURGE_REPORT_PATH=$REPORT_PATH" >> "$GITHUB_ENV"
+
+          {
+            echo "### Referencias internas de PR afectadas"
+            if [[ -n "$AFFECTED_PULL_REFS" ]]; then
+              echo "GitHub no permite actualizar estas referencias mediante push; se requiere revisar la solicitud a GitHub Support."
+              printf '%s\n' "$AFFECTED_PULL_REFS"
+            else
+              echo "git-filter-repo no reportó referencias internas de PR afectadas."
+            fi
+            echo
+            echo "Los primeros commits modificados se registraron en el artefacto ttapp-env-history-purge-report."
+          } >> "$GITHUB_STEP_SUMMARY"
 
           AFTER_BRANCHES="$(git -C "$MIRROR_DIR" for-each-ref --format='%(refname)' refs/heads | wc -l)"
           AFTER_TAGS="$(git -C "$MIRROR_DIR" for-each-ref --format='%(refname)' refs/tags | wc -l)"
@@ -122,3 +199,11 @@ jobs:
             echo "- Verificación de refs remotas de ramas y etiquetas: correcta."
             echo "- Las referencias internas de PR/cachés de GitHub no son actualizables mediante push; revisa la lista anterior y el proceso de GitHub Support cuando corresponda."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload history rewrite report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ttapp-env-history-purge-report
+          path: ${{ runner.temp }}/ttapp-env-history-purge-report.txt
+          if-no-files-found: warn
