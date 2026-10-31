@@ -7,9 +7,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" crossorigin="anonymous"></script>
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
     <!-- Font Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,6 +152,27 @@
             100% { box-shadow: 0 0 0 0 rgba(255, 119, 119, 0); transform: rotate(-45deg) scale(1); }
         }
 
+
+        :focus-visible { outline: 3px solid #58d6e8 !important; outline-offset: 3px; }
+        button:disabled { opacity: .45; cursor: not-allowed; }
+        .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+        #alertActionDialog { width:min(94vw,520px);max-height:88vh;overflow:auto;color:#edf3fb;background:#121b28;border:1px solid #27364a;border-radius:18px;padding:0;box-shadow:0 25px 70px rgba(0,0,0,.55); }
+        #alertActionDialog::backdrop { background:rgba(3,8,15,.78);backdrop-filter:blur(5px); }
+        .map-live-note { position:absolute;z-index:500;top:12px;left:12px;right:12px;max-width:600px;padding:9px 12px;border-radius:10px;background:rgba(11,16,24,.93);border:1px solid rgba(242,193,109,.55);color:#f2d7a5;font-size:11px;line-height:1.45; }
+        .status-dot { display:inline-block;width:8px;height:8px;border-radius:50%;background:#f2c16d;margin-right:7px; }
+        .status-dot.connected { background:#7bd8ad; }
+        .status-dot.error { background:#ff7777; }
+        .data-state-banner { border:1px solid #6b542f;background:rgba(67,49,24,.48);color:#f2d7a5; }
+        .data-state-banner.connected { border-color:rgba(123,216,173,.5);background:rgba(23,55,47,.55);color:#b5f1d0; }
+        .metric-secondary { display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(39,54,74,.6);font-size:11px;color:#9baec4; }
+        .metric-secondary strong { color:#edf3fb;font-weight:700; }
+        .alert-action-row { display:flex;gap:8px;flex-wrap:wrap;align-items:center; }
+        .audit-empty { padding:24px 16px;text-align:center;color:#9baec4; }
+        .audit-row { transition:background .12s ease; }
+        .audit-row:hover { background:rgba(22,34,50,.6); }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important;animation-iteration-count:1 !important;scroll-behavior:auto !important;transition-duration:.01ms !important; } }
+        @media (max-width:640px) { #alertActionDialog { width:calc(100vw - 20px); } #apiConnectForm { grid-template-columns:minmax(0,1fr) !important; } }
+
         @media print {
             body { background: #fff; color: #000; }
             .no-print { display: none !important; }
@@ -182,7 +203,7 @@
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20">Huauchinango, Pue.</span>
                     </div>
                     <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">Junta Administrativa · Taxis de Huauchinango</h1>
-                    <p class="text-xs sm:text-sm text-brand-muted">Panel demostrativo · datos ficticios · sin conexión a GPS ni API</p>
+                    <p id="headerDataMode" class="text-xs sm:text-sm text-brand-muted">Modo demo · datos ficticios · sin conexión al backend</p>
                 </div>
             </div>
 
@@ -193,26 +214,67 @@
                     <span>Huauchinango, Puebla</span>
                 </div>
 
-                <button id="simToggleBtn" onclick="toggleSimulation()" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all">
+                <button id="simToggleBtn" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all">
                     <i data-lucide="play" class="w-4 h-4 text-brand-green" id="simIcon"></i>
-                    <span id="simText">Simulación GPS: Inactiva</span>
+                    <span id="simText">Simulación demo: Inactiva</span>
                 </button>
 
-                <button onclick="exportDataCSV()" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all" title="Exportar actividad a CSV">
+                <button id="exportCsvButton" class="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all" title="Exportar la auditoría filtrada a CSV">
                     <i data-lucide="download" class="w-4 h-4 text-brand-cyan"></i>
                     <span class="hidden sm:inline">Exportar CSV</span>
                 </button>
 
-                <button onclick="refreshDashboard()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 hover:bg-brand-cyan/20 text-brand-cyan text-xs font-semibold transition-all">
+                <button id="refreshDashboardButton" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 hover:bg-brand-cyan/20 text-brand-cyan text-xs font-semibold transition-all">
                     <i data-lucide="rotate-cw" class="w-4 h-4" id="refreshIcon"></i>
                     <span>Actualizar</span>
                 </button>
             </div>
         </header>
 
-        <div role="status" class="rounded-xl border border-brand-amber/50 bg-brand-amber/10 p-4 text-sm text-brand-amber shadow-md">
+        <div id="prototypeWarning" role="status" class="rounded-xl border border-brand-amber/50 bg-brand-amber/10 p-4 text-sm text-brand-amber shadow-md">
             <strong>PROTOTIPO — DATOS FICTICIOS.</strong> La simulación GPS solo mueve marcadores localmente. No hay autenticación, conexión con la API, telemetría real ni datos financieros verificados. No utilizar para gestionar viajes reales.
         </div>
+
+        <section class="glass-panel rounded-2xl p-5 space-y-4" aria-labelledby="apiConnectTitle">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                    <h2 id="apiConnectTitle" class="text-base font-bold text-white flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-brand-cyan" aria-hidden="true"></i>
+                        Conexión segura con TTAPP
+                    </h2>
+                    <p class="text-xs text-brand-muted mt-1">La conexión real usa el backend y sus permisos. El token permanece solo en memoria y se elimina al cerrar sesión o recargar la página.</p>
+                </div>
+                <div id="apiConnectionBadge" class="self-start px-3 py-1.5 rounded-full text-xs font-semibold border border-brand-amber/40 bg-brand-amber/10 text-brand-amber" role="status" aria-live="polite">
+                    <span class="status-dot" id="apiStatusDot"></span><span id="apiStatusText">Modo demostración</span>
+                </div>
+            </div>
+            <form id="apiConnectForm" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <label class="text-xs text-brand-muted flex flex-col gap-1.5 md:col-span-1">
+                    URL base de API
+                    <input id="apiBaseUrl" name="apiBaseUrl" type="url" required value="http://localhost:3000" autocomplete="url"
+                        class="w-full bg-brand-bg/80 border border-brand-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-cyan">
+                </label>
+                <label class="text-xs text-brand-muted flex flex-col gap-1.5 md:col-span-1">
+                    Correo electrónico o teléfono
+                    <input id="apiEmail" name="identifier" type="text" maxlength="254" required autocomplete="username" placeholder="correo@dominio.mx o teléfono"
+                        class="w-full bg-brand-bg/80 border border-brand-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-cyan">
+                </label>
+                <label class="text-xs text-brand-muted flex flex-col gap-1.5 md:col-span-1">
+                    Contraseña
+                    <input id="apiPassword" name="password" type="password" minlength="6" maxlength="128" required autocomplete="current-password"
+                        class="w-full bg-brand-bg/80 border border-brand-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand-cyan">
+                </label>
+                <div class="flex items-end gap-2 md:col-span-1">
+                    <button id="apiLoginButton" type="submit" class="w-full px-4 py-2.5 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 hover:bg-brand-cyan/20 text-brand-cyan text-xs font-semibold transition-all">Conectar</button>
+                    <button id="apiLogoutButton" type="button" hidden class="px-3 py-2.5 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-red/50 text-white text-xs font-semibold">Salir</button>
+                </div>
+            </form>
+            <p id="apiConnectionMessage" class="text-xs text-brand-muted" role="status" aria-live="polite">El modo demostración no consulta ni modifica datos reales. Para conectar, usa una cuenta autorizada y la URL de la API correspondiente.</p>
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-brand-muted">
+                <span id="apiPermissionsSummary">Sin sesión autenticada.</span>
+                <span>Última actualización: <time id="lastUpdated">No disponible</time></span>
+            </div>
+        </section>
 
         <!-- Notice Banner -->
         <div class="notice-banner relative overflow-hidden rounded-xl border border-brand-amber/30 bg-gradient-to-r from-brand-amber/10 via-brand-surface to-brand-surface p-4 text-xs sm:text-sm text-amber-200/90 flex items-start gap-3 shadow-md">
@@ -237,7 +299,7 @@
                 <div class="mt-4 flex items-baseline gap-2">
                     <span class="text-3xl font-extrabold text-white" id="kpiTrips">142</span>
                     <span class="text-xs font-semibold text-brand-green flex items-center gap-0.5">
-                        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> +18%
+                        <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Demo
                     </span>
                 </div>
                 <div class="mt-2 text-xs text-brand-muted flex items-center justify-between">
@@ -248,7 +310,7 @@
 
             <div class="glass-card rounded-2xl p-5 relative overflow-hidden group">
                 <div class="flex justify-between items-start">
-                    <span class="text-xs font-medium text-brand-muted uppercase tracking-wider">Ingresos Reportados</span>
+                    <span class="text-xs font-medium text-brand-muted uppercase tracking-wider">Importe confirmado manualmente</span>
                     <div class="p-2 rounded-lg bg-brand-green/10 text-brand-green">
                         <i data-lucide="dollar-sign" class="w-5 h-5"></i>
                     </div>
@@ -256,13 +318,14 @@
                 <div class="mt-4 flex items-baseline gap-2">
                     <span class="text-3xl font-extrabold text-white" id="kpiRevenue">$19,850</span>
                     <span class="text-xs font-semibold text-brand-green flex items-center gap-0.5">
-                        <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> +11.4%
+                        <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Demo
                     </span>
                 </div>
                 <div class="mt-2 text-xs text-brand-muted flex items-center justify-between">
-                    <span>MXN · Tarifas locales</span>
-                    <span class="text-brand-green text-[11px]">Estable</span>
+                    <span>MXN · Confirmación manual</span>
+                    <span class="text-brand-amber text-[11px]">No conciliado</span>
                 </div>
+                <div class="metric-secondary"><span>Comisión devengada</span><strong id="kpiCommission">$0.00</strong></div>
             </div>
 
             <div class="glass-card rounded-2xl p-5 relative overflow-hidden group">
@@ -279,7 +342,7 @@
                     </span>
                 </div>
                 <div class="mt-2 text-xs text-brand-muted flex items-center justify-between">
-                    <span>Atención a conductor</span>
+                    <span>Alertas de pasajero y conductor</span>
                     <span id="alertStatusDot" class="inline-block w-2 h-2 rounded-full bg-brand-red animate-ping"></span>
                 </div>
             </div>
@@ -319,19 +382,19 @@
 
                 <!-- Map Filter Buttons -->
                 <div class="flex flex-wrap items-center gap-1.5 no-print" id="mapFilters">
-                    <button onclick="filterMapUnits('all')" class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-cyan/20 border border-brand-cyan text-brand-cyan transition-all" data-filter="all">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-cyan/20 border border-brand-cyan text-brand-cyan transition-all" data-filter="all" aria-pressed="true">
                         Todas (<span id="countAll">12</span>)
                     </button>
-                    <button onclick="filterMapUnits('En Servicio')" class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-green transition-all" data-filter="En Servicio">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-green transition-all" data-filter="En Servicio" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-green inline-block mr-1"></span>En Servicio (<span id="countService">6</span>)
                     </button>
-                    <button onclick="filterMapUnits('Disponible')" class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-cyan transition-all" data-filter="Disponible">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-cyan transition-all" data-filter="Disponible" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-cyan inline-block mr-1"></span>Libres / Disponibles (<span id="countAvailable">4</span>)
                     </button>
-                    <button onclick="filterMapUnits('Fuera de Línea')" class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-amber transition-all" data-filter="Fuera de Línea">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-amber transition-all" data-filter="Fuera de Línea" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-amber inline-block mr-1"></span>Fuera de línea (<span id="countOffline">1</span>)
                     </button>
-                    <button onclick="filterMapUnits('Alerta')" class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-red transition-all" data-filter="Alerta">
+                    <button class="map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-red transition-all" data-filter="Alerta" aria-pressed="false">
                         <span class="w-2 h-2 rounded-full bg-brand-red inline-block mr-1"></span>Alerta (<span id="countAlerts">1</span>)
                     </button>
                 </div>
@@ -343,9 +406,9 @@
                 <div class="lg:col-span-4 bg-brand-surface/70 border border-brand-border rounded-xl p-3 flex flex-col h-full overflow-hidden">
                     <div class="flex items-center justify-between mb-2 pb-2 border-b border-brand-border/60">
                         <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                            <i data-lucide="list" class="w-3.5 h-3.5 text-brand-cyan"></i> Taxis Registrados (<span id="sidebarCount">12</span>)
+                            <i data-lucide="list" class="w-3.5 h-3.5 text-brand-cyan" aria-hidden="true"></i> <span id="fleetSidebarHeading">Taxis de demostración</span> (<span id="sidebarCount">12</span>)
                         </span>
-                        <span class="text-[11px] text-brand-muted">Clic para enfocar en Huauchinango</span>
+                        <span id="fleetSidebarHelp" class="text-[11px] text-brand-muted">Selecciona una unidad ficticia para centrar el mapa</span>
                     </div>
 
                     <!-- Scrollable Fleet List -->
@@ -356,10 +419,13 @@
 
                 <!-- Leaflet Canvas (8 Cols) -->
                 <div class="lg:col-span-8 relative rounded-xl overflow-hidden border border-brand-border h-[500px] lg:h-full min-h-[360px]">
-                    <div id="fleetMap"></div>
+                    <div id="fleetMap" role="application" aria-label="Mapa de Huauchinango con alertas autorizadas y marcadores de demostración"></div>
+                    <div id="fleetMapNotice" class="map-live-note" role="status" aria-live="polite">
+                        Modo demo: los marcadores y posiciones son ficticios; solo la cartografía base es real.
+                    </div>
 
                     <!-- Map Legend Overlay -->
-                    <div class="absolute bottom-3 left-3 z-[400] bg-brand-surface/90 backdrop-blur-md border border-brand-border rounded-xl p-3 text-[11px] text-brand-muted space-y-1.5 shadow-lg no-print">
+                    <div id="mapLegend" class="absolute bottom-3 left-3 z-[400] bg-brand-surface/90 backdrop-blur-md border border-brand-border rounded-xl p-3 text-[11px] text-brand-muted space-y-1.5 shadow-lg no-print">
                         <div class="font-semibold text-white flex items-center gap-1">
                             <i data-lucide="navigation-2" class="w-3.5 h-3.5 text-brand-cyan"></i>
                             Simbología Taxis Huauchinango
@@ -400,14 +466,15 @@
                                     <i data-lucide="line-chart" class="w-4 h-4 text-brand-cyan"></i>
                                     Flujo de Ingresos
                                 </h2>
-                                <p class="text-xs text-brand-muted">Estimación por franja horaria en Huauchinango</p>
+                                <p class="text-xs text-brand-muted">Datos ilustrativos; no es una serie financiera real</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-surface border border-brand-border text-brand-cyan">
                                 MXN ($)
                             </span>
                         </div>
                         <div class="h-56 relative w-full">
-                            <canvas id="revenueChart"></canvas>
+                            <canvas id="revenueChart" aria-label="Gráfica de ingresos de demostración" role="img"></canvas>
+                            <p id="revenueChartUnavailable" class="text-xs text-brand-muted p-4" hidden></p>
                         </div>
                     </div>
 
@@ -418,14 +485,15 @@
                                     <i data-lucide="pie-chart" class="w-4 h-4 text-brand-green"></i>
                                     Formas de Pago
                                 </h2>
-                                <p class="text-xs text-brand-muted">Efectivo vs Pago Digital</p>
+                                <p class="text-xs text-brand-muted">Distribución ficticia de formas de pago</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-brand-surface border border-brand-border text-brand-muted">
                                 % Total
                             </span>
                         </div>
                         <div class="h-56 relative flex items-center justify-center">
-                            <canvas id="paymentChart"></canvas>
+                            <canvas id="paymentChart" aria-label="Gráfica de formas de pago de demostración" role="img"></canvas>
+                            <p id="paymentChartUnavailable" class="text-xs text-brand-muted p-4" hidden></p>
                         </div>
                     </div>
                 </div>
@@ -452,13 +520,22 @@
                             <input id="activitySearch" type="text" placeholder="Buscar por unidad, conductor o zona de Huauchinango..." 
                                 class="w-full bg-brand-bg/80 border border-brand-border rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-brand-muted focus:outline-none focus:border-brand-cyan transition-all">
                         </div>
+                        <div class="w-full sm:w-auto grid grid-cols-2 gap-2">
+                            <label class="text-[10px] text-brand-muted flex flex-col gap-1">Desde
+                                <input id="activityFrom" type="date" aria-label="Filtrar auditoría desde fecha" class="bg-brand-bg/80 border border-brand-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none focus:border-brand-cyan">
+                            </label>
+                            <label class="text-[10px] text-brand-muted flex flex-col gap-1">Hasta
+                                <input id="activityTo" type="date" aria-label="Filtrar auditoría hasta fecha" class="bg-brand-bg/80 border border-brand-border rounded-xl px-2 py-2 text-xs text-white focus:outline-none focus:border-brand-cyan">
+                            </label>
+                        </div>
                         <div class="w-full sm:w-auto flex items-center gap-2">
-                            <select id="activityFilter" class="w-full sm:w-auto bg-brand-bg/80 border border-brand-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-cyan transition-all">
+                            <select id="activityFilter" aria-label="Filtrar auditoría por categoría" class="w-full sm:w-auto bg-brand-bg/80 border border-brand-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-cyan transition-all">
                                 <option value="all">Todas las categorías</option>
                                 <option value="Viaje">Viajes</option>
                                 <option value="Acceso">Accesos</option>
                                 <option value="Alerta">Alertas</option>
                                 <option value="Transacción">Transacciones</option>
+                                <option value="Otra">Otras acciones</option>
                             </select>
                         </div>
                     </div>
@@ -591,627 +668,27 @@
 
     </div>
 
-    <!-- JavaScript Application Logic -->
-    <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
-
-        // DATOS FICTICIOS de demostración; no corresponden a una flota verificada.
-        let fleetUnits = [
-            { id: "TX-101", driver: "Juan Pérez Solís", status: "En Servicio", lat: 20.1775, lng: -98.0520, location: "Av. Revolución (Centro)", battery: "89%", signal: "4G", speed: "32 km/h" },
-            { id: "TX-102", driver: "Carlos Mendoza Cruz", status: "Alerta", lat: 20.1710, lng: -98.0580, location: "Colonia El Potrero", battery: "74%", signal: "4G", speed: "0 km/h" },
-            { id: "TX-103", driver: "Martín Hernández", status: "En Servicio", lat: 20.1820, lng: -98.0490, location: "Bulevar Bicentenario", battery: "95%", signal: "5G", speed: "45 km/h" },
-            { id: "TX-104", driver: "Roberto Morales", status: "Disponible", lat: 20.1764, lng: -98.0531, location: "Sitio Zócalo de Huauchinango", battery: "98%", signal: "5G", speed: "0 km/h" },
-            { id: "TX-105", driver: "José Luis Galicia", status: "En Servicio", lat: 20.1880, lng: -98.0620, location: "Colonia Catalina", battery: "81%", signal: "4G", speed: "28 km/h" },
-            { id: "TX-106", driver: "Aurelio Vargas", status: "Disponible", lat: 20.1730, lng: -98.0450, location: "Calle Hidalgo (5 de Mayo)", battery: "91%", signal: "5G", speed: "0 km/h" },
-            { id: "TX-107", driver: "Ignacio Domínguez", status: "En Servicio", lat: 20.1680, lng: -98.0650, location: "Sector La Mesta", battery: "68%", signal: "4G", speed: "36 km/h" },
-            { id: "TX-108", driver: "Santiesteban Ortiz", status: "Disponible", lat: 20.1810, lng: -98.0560, location: "Colonia Ferrocarril", battery: "85%", signal: "4G", speed: "0 km/h" },
-            { id: "TX-109", driver: "Fernando Trejo", status: "En Servicio", lat: 20.1795, lng: -98.0410, location: "Carretera Fed. México-Tuxpan", battery: "78%", signal: "4G", speed: "52 km/h" },
-            { id: "TX-110", driver: "Raúl Velázquez", status: "Disponible", lat: 20.1750, lng: -98.0500, location: "Mercado Municipal", battery: "92%", signal: "5G", speed: "0 km/h" },
-            { id: "TX-111", driver: "David Santos", status: "En Servicio", lat: 20.1650, lng: -98.0550, location: "Santa Catarina", battery: "64%", signal: "4G", speed: "30 km/h" },
-            { id: "TX-112", driver: "Guillermo Arroyo", status: "Fuera de Línea", lat: 20.1700, lng: -98.0510, location: "Base Taller Zaragoza", battery: "20%", signal: "Sin señal", speed: "0 km/h" }
-        ];
-
-        // Bitácora ficticia para pruebas visuales.
-        let activityRows = [
-            { id: 1, time: "10:42", actor: "TX-101 (Juan Pérez)", action: "Viaje", detail: "Pasaje abordado en Zócalo hacia Bulevar Bicentenario", status: "Completado" },
-            { id: 2, time: "10:38", actor: "TX-104 (Roberto Morales)", action: "Acceso", detail: "Llegada a Sitio Centro Huauchinango", status: "Exitoso" },
-            { id: 3, time: "10:31", actor: "TX-102 (Carlos Mendoza)", action: "Alerta", detail: "Botón de pánico presionado en Col. El Potrero", status: "Pendiente" },
-            { id: 4, time: "10:20", actor: "TX-105 (José Luis Galicia)", action: "Viaje", detail: "Servicio completado en Col. Catalina", status: "Completado" },
-            { id: 5, time: "10:05", actor: "Base Central Huauchinango", action: "Transacción", detail: "Cierre parcial de caja turno matutino $3,850 MXN", status: "Aprobado" }
-        ];
-
-        // Alertas ficticias de demostración.
-        let alerts = [
-            { id: "PAN-HGO-01", unitId: "TX-102", source: "Conductor · TX-102 (Carlos Mendoza)", desc: "Alerta de auxilio activada cerca de Col. El Potrero", time: "Hace 8 min", priority: "Alta" }
-        ];
-
-        let simulationInterval = null;
-        let isSimulating = false;
-        let revenueChart = null;
-        let paymentChart = null;
-        let map = null;
-        let mapMarkers = {};
-        let activeMapFilter = 'all';
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            let bgBorder = 'bg-brand-card border-brand-cyan text-brand-cyan';
-            let icon = 'info';
-
-            if (type === 'success') {
-                bgBorder = 'bg-brand-card border-brand-green text-brand-green';
-                icon = 'check-circle';
-            } else if (type === 'warning') {
-                bgBorder = 'bg-brand-card border-brand-amber text-brand-amber';
-                icon = 'alert-triangle';
-            } else if (type === 'danger') {
-                bgBorder = 'bg-brand-card border-brand-red text-brand-red';
-                icon = 'shield-alert';
-            }
-
-            toast.className = `toast-enter flex items-center gap-3 p-3.5 rounded-xl border shadow-2xl backdrop-blur-md ${bgBorder} pointer-events-auto text-xs font-medium`;
-            toast.innerHTML = `
-                <i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i>
-                <span class="flex-1 text-white">${message}</span>
-                <button onclick="this.parentElement.remove()" class="text-brand-muted hover:text-white">
-                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                </button>
-            `;
-
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.4s ease';
-                setTimeout(() => toast.remove(), 400);
-            }, 4000);
-        }
-
-        // Initialize Map centered on Huauchinango, Puebla
-        function initMap() {
-            // Center lat/lng: Huauchinango, Puebla, Mexico
-            map = L.map('fleetMap', {
-                zoomControl: true,
-                attributionControl: true
-            }).setView([20.1764, -98.0531], 15);
-
-            // Cartografía real de calles de Huauchinango mediante OpenStreetMap.
-            // La atribución es obligatoria y se mantiene visible en el mapa.
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                subdomains: 'abc',
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            streetLayer.on('tileerror', () => {
-                showToast('No se pudo cargar una tesela del mapa. Verifica la conexión a Internet.', 'warning');
-            });
-
-            // Corrige las dimensiones del mapa después de que la cuadrícula se renderice.
-            map.whenReady(() => {
-                window.setTimeout(() => map.invalidateSize(true), 150);
-            });
-            window.addEventListener('resize', () => {
-                if (map) map.invalidateSize();
-            });
-
-            renderMapMarkers();
-            renderFleetSidebar();
-            updateFleetCounts();
-        }
-
-        function createCustomIcon(unit) {
-            let pinClass = "pin-en-servicio";
-            let iconMarkup = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>';
-
-            if (unit.status === 'En Servicio') {
-                pinClass = "pin-en-servicio";
-            } else if (unit.status === 'Disponible') {
-                pinClass = "pin-disponible";
-                iconMarkup = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
-            } else if (unit.status === 'Fuera de Línea') {
-                pinClass = "pin-fuera-de-linea";
-                iconMarkup = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 20 20"/><path d="M10.41 10.41a2 2 0 1 0 2.83 2.83"/></svg>';
-            } else if (unit.status === 'Alerta') {
-                pinClass = "pin-alerta";
-                iconMarkup = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-            }
-
-            return L.divIcon({
-                className: 'custom-div-icon',
-                html: `<div class="marker-pin ${pinClass}">${iconMarkup}</div>`,
-                iconSize: [30, 42],
-                iconAnchor: [15, 42]
-            });
-        }
-
-        function renderMapMarkers() {
-            Object.values(mapMarkers).forEach(m => map.removeLayer(m));
-            mapMarkers = {};
-
-            fleetUnits.forEach(unit => {
-                if (activeMapFilter !== 'all' && unit.status !== activeMapFilter) return;
-
-                const marker = L.marker([unit.lat, unit.lng], {
-                    icon: createCustomIcon(unit)
-                }).addTo(map);
-
-                let badgeColor = "bg-brand-green/20 text-brand-green border-brand-green/40";
-                if (unit.status === 'Disponible') badgeColor = "bg-brand-cyan/20 text-brand-cyan border-brand-cyan/40";
-                if (unit.status === 'Fuera de Línea') badgeColor = "bg-brand-amber/20 text-brand-amber border-brand-amber/40";
-                if (unit.status === 'Alerta') badgeColor = "bg-brand-red/20 text-brand-red border-brand-red/40 animate-pulse";
-
-                const popupContent = `
-                    <div class="p-2 space-y-2 min-w-[210px]">
-                        <div class="flex items-center justify-between border-b border-brand-border/60 pb-1.5">
-                            <span class="font-bold text-white text-sm font-mono">${unit.id}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeColor}">${unit.status}</span>
-                        </div>
-                        <div class="text-xs space-y-1">
-                            <div class="text-white font-medium flex items-center gap-1">
-                                <i data-lucide="user" class="w-3 h-3 text-brand-cyan"></i> ${unit.driver}
-                            </div>
-                            <div class="text-brand-muted text-[11px]">
-                                📍 ${unit.location}
-                            </div>
-                            <div class="text-[10px] text-brand-cyan font-mono">
-                                Huauchinango, Pue.
-                            </div>
-                            <div class="flex items-center justify-between text-[10px] text-brand-muted pt-1 border-t border-brand-border/40">
-                                <span>🔋 ${unit.battery}</span>
-                                <span>📶 ${unit.signal}</span>
-                                <span>🚀 ${unit.speed}</span>
-                            </div>
-                        </div>
-                        <button onclick="focusUnitOnMap('${unit.id}')" class="w-full mt-1 py-1 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 border border-brand-cyan/40 text-brand-cyan text-[11px] font-semibold transition-all">
-                            Centrar Unidad
-                        </button>
-                    </div>
-                `;
-
-                marker.bindPopup(popupContent);
-                mapMarkers[unit.id] = marker;
-            });
-        }
-
-        function focusUnitOnMap(unitId) {
-            const unit = fleetUnits.find(u => u.id === unitId);
-            if (!unit) return;
-
-            map.flyTo([unit.lat, unit.lng], 16, { duration: 1.2 });
-            
-            setTimeout(() => {
-                if (mapMarkers[unitId]) {
-                    mapMarkers[unitId].openPopup();
-                }
-            }, 1200);
-
-            showToast(`Enfocando unidad ${unitId} (${unit.driver}) en Huauchinango`, 'info');
-        }
-
-        function renderFleetSidebar() {
-            const container = document.getElementById('fleetList');
-            document.getElementById('sidebarCount').textContent = fleetUnits.length;
-
-            const filtered = fleetUnits.filter(u => activeMapFilter === 'all' || u.status === activeMapFilter);
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="p-4 text-center text-xs text-brand-muted">Sin unidades en este filtro</div>`;
-                return;
-            }
-
-            container.innerHTML = filtered.map(unit => {
-                let badgeClass = "bg-brand-green/10 border-brand-green/30 text-brand-green";
-                let statusDot = "bg-brand-green";
-
-                if (unit.status === 'Disponible') {
-                    badgeClass = "bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan";
-                    statusDot = "bg-brand-cyan";
-                } else if (unit.status === 'Fuera de Línea') {
-                    badgeClass = "bg-brand-amber/10 border-brand-amber/30 text-brand-amber";
-                    statusDot = "bg-brand-amber";
-                } else if (unit.status === 'Alerta') {
-                    badgeClass = "bg-brand-red/10 border-brand-red/30 text-brand-red animate-pulse";
-                    statusDot = "bg-brand-red animate-ping";
-                }
-
-                return `
-                    <div onclick="focusUnitOnMap('${unit.id}')" class="p-2.5 rounded-xl bg-brand-bg/60 hover:bg-brand-hover border border-brand-border/60 hover:border-brand-cyan/40 cursor-pointer transition-all space-y-1 group">
-                        <div class="flex items-center justify-between">
-                            <span class="font-mono text-xs font-bold text-white group-hover:text-brand-cyan transition-colors flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full ${statusDot}"></span>
-                                ${unit.id}
-                            </span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badgeClass}">
-                                ${unit.status}
-                            </span>
-                        </div>
-                        <div class="text-[11px] text-brand-muted truncate">${unit.driver}</div>
-                        <div class="text-[10px] text-brand-muted/80 flex items-center justify-between">
-                            <span>📍 ${unit.location}</span>
-                            <span class="font-mono">${unit.speed}</span>
-                        </div>
-                    </div>
-                `;
-            }).join("");
-        }
-
-        function filterMapUnits(filter) {
-            activeMapFilter = filter;
-
-            document.querySelectorAll('.map-filter-btn').forEach(btn => {
-                if (btn.getAttribute('data-filter') === filter) {
-                    btn.className = "map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-cyan/20 border border-brand-cyan text-brand-cyan transition-all";
-                } else {
-                    btn.className = "map-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-brand-surface border border-brand-border text-brand-muted hover:border-brand-cyan transition-all";
-                }
-            });
-
-            renderMapMarkers();
-            renderFleetSidebar();
-        }
-
-        function updateFleetCounts() {
-            const total = fleetUnits.length;
-            const inService = fleetUnits.filter(u => u.status === 'En Servicio').length;
-            const available = fleetUnits.filter(u => u.status === 'Disponible').length;
-            const offline = fleetUnits.filter(u => u.status === 'Fuera de Línea').length;
-            const inAlert = fleetUnits.filter(u => u.status === 'Alerta').length;
-
-            document.getElementById('countAll').textContent = total;
-            document.getElementById('countService').textContent = inService;
-            document.getElementById('countAvailable').textContent = available;
-            document.getElementById('countOffline').textContent = offline;
-            document.getElementById('countAlerts').textContent = inAlert;
-
-            document.getElementById('kpiFleetCount').textContent = total;
-            const activePercent = Math.round(((inService + available) / total) * 100);
-            document.getElementById('kpiActivePercent').innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> ${activePercent}% simuladas`;
-
-            const availablePct = Math.round((available / total) * 100);
-            const inServicePct = Math.round((inService / total) * 100);
-            const offlinePct = Math.round((offline / total) * 100);
-
-            document.getElementById('unitsAvailableText').textContent = `${available} taxis (${availablePct}%)`;
-            document.getElementById('unitsAvailableBar').style.width = `${availablePct}%`;
-
-            document.getElementById('unitsInServiceText').textContent = `${inService} taxis (${inServicePct}%)`;
-            document.getElementById('unitsInServiceBar').style.width = `${inServicePct}%`;
-
-            document.getElementById('unitsOfflineText').textContent = `${offline} taxis (${offlinePct}%)`;
-            document.getElementById('unitsOfflineBar').style.width = `${offlinePct}%`;
-
-            lucide.createIcons();
-        }
-
-        function renderActivity() {
-            const search = document.getElementById("activitySearch").value.toLowerCase();
-            const filter = document.getElementById("activityFilter").value;
-            const tbody = document.getElementById("activityTableBody");
-
-            const filtered = activityRows.filter(a => {
-                const matchesFilter = (filter === "all" || a.action === filter);
-                const matchesSearch = [a.actor, a.action, a.detail, a.time].join(" ").toLowerCase().includes(search);
-                return matchesFilter && matchesSearch;
-            });
-
-            if (filtered.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="p-6 text-center text-brand-muted">
-                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
-                            Sin resultados coincidiendo con la búsqueda en Huauchinango.
-                        </td>
-                    </tr>`;
-                lucide.createIcons();
-                return;
-            }
-
-            tbody.innerHTML = filtered.map(a => {
-                let badgeStyle = "bg-brand-surface border-brand-border text-brand-muted";
-                let iconName = "activity";
-
-                if (a.action === "Viaje") {
-                    badgeStyle = "bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan";
-                    iconName = "car";
-                } else if (a.action === "Acceso") {
-                    badgeStyle = "bg-brand-green/10 border-brand-green/30 text-brand-green";
-                    iconName = "user-check";
-                } else if (a.action === "Alerta") {
-                    badgeStyle = "bg-brand-red/10 border-brand-red/30 text-brand-red";
-                    iconName = "bell";
-                } else if (a.action === "Transacción") {
-                    badgeStyle = "bg-brand-amber/10 border-brand-amber/30 text-brand-amber";
-                    iconName = "dollar-sign";
-                }
-
-                return `
-                    <tr class="hover:bg-brand-surface/60 transition-colors">
-                        <td class="p-3 font-mono text-brand-muted whitespace-nowrap">${a.time}</td>
-                        <td class="p-3 font-medium text-white">${a.actor}</td>
-                        <td class="p-3 whitespace-nowrap">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${badgeStyle}">
-                                <i data-lucide="${iconName}" class="w-3 h-3"></i>
-                                ${a.action}
-                            </span>
-                        </td>
-                        <td class="p-3 text-brand-muted">${a.detail}</td>
-                    </tr>
-                `;
-            }).join("");
-
-            lucide.createIcons();
-        }
-
-        function renderAlerts() {
-            const container = document.getElementById("alertsContainer");
-            const countEl = document.getElementById("openAlerts");
-            const badgeEl = document.getElementById("alertsBadge");
-            const dotEl = document.getElementById("alertStatusDot");
-
-            countEl.textContent = alerts.length;
-
-            if (alerts.length === 0) {
-                container.innerHTML = `
-                    <div class="p-6 text-center text-brand-muted border border-dashed border-brand-border rounded-xl">
-                        <i data-lucide="check-circle-2" class="w-8 h-8 text-brand-green mx-auto mb-2 opacity-80"></i>
-                        <p class="text-xs font-medium text-white">Sin alertas ficticias abiertas</p>
-                        <p class="text-[11px]">Este resultado solo afecta la demostración local.</p>
-                    </div>`;
-                badgeEl.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-green/20 text-brand-green border border-brand-green/30";
-                badgeEl.textContent = "Normal";
-                dotEl.className = "inline-block w-2 h-2 rounded-full bg-brand-green";
-                lucide.createIcons();
-                return;
-            }
-
-            badgeEl.className = "px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-red/20 text-brand-red border border-brand-red/30";
-            badgeEl.textContent = `${alerts.length} Requerida`;
-            dotEl.className = "inline-block w-2 h-2 rounded-full bg-brand-red animate-ping";
-
-            container.innerHTML = alerts.map(a => `
-                <div class="p-3.5 rounded-xl bg-gradient-to-r from-brand-red/10 via-brand-surface to-brand-surface border border-brand-red/30 space-y-2 relative overflow-hidden group">
-                    <div class="flex items-center justify-between">
-                        <span class="font-mono text-xs font-bold text-brand-red flex items-center gap-1.5">
-                            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
-                            ${a.id}
-                        </span>
-                        <span class="text-[10px] text-brand-muted">${a.time}</span>
-                    </div>
-                    <div class="text-xs font-semibold text-white">${a.source}</div>
-                    <p class="text-[11px] text-brand-muted leading-relaxed">${a.desc}</p>
-                    <div class="pt-2 flex justify-between items-center gap-2">
-                        <button onclick="focusUnitOnMap('${a.unitId}')" class="px-2.5 py-1 rounded-lg bg-brand-surface border border-brand-border text-brand-cyan text-[11px] hover:border-brand-cyan transition-all flex items-center gap-1">
-                            📍 Ver en Mapa
-                        </button>
-                        <button onclick="resolveAlert('${a.id}')" class="px-3 py-1 rounded-lg bg-brand-red/20 hover:bg-brand-red/30 border border-brand-red/40 text-brand-red hover:text-white text-[11px] font-semibold transition-all flex items-center gap-1">
-                            <i data-lucide="check" class="w-3 h-3"></i>
-                            Atender
-                        </button>
-                    </div>
+    <dialog id="alertActionDialog" aria-labelledby="alertDialogTitle">
+        <form id="alertActionForm" class="p-5 sm:p-6 space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h2 id="alertDialogTitle" class="text-lg font-bold text-white">Actualizar alerta</h2>
+                    <p id="alertDialogDescription" class="text-xs text-brand-muted mt-1">La acción quedará registrada por el backend al conectar.</p>
                 </div>
-            `).join("");
+                <button id="alertDialogCancelTop" type="button" class="px-2 py-1 rounded-lg border border-brand-border text-brand-muted" aria-label="Cerrar diálogo">Cerrar</button>
+            </div>
+            <p id="alertDialogError" class="text-xs text-brand-red" role="alert" hidden></p>
+            <label id="alertReasonWrap" class="text-xs text-brand-muted flex flex-col gap-1.5" for="alertReason">
+                Nota requerida
+                <textarea id="alertReason" minlength="3" maxlength="500" rows="4" required class="w-full bg-brand-bg border border-brand-border rounded-xl p-3 text-sm text-white focus:outline-none focus:border-brand-cyan" placeholder="Describe la escalación o la resolución (3–500 caracteres)."></textarea>
+            </label>
+            <div class="flex justify-end gap-2">
+                <button id="alertDialogCancel" type="button" class="px-4 py-2 rounded-xl bg-brand-surface border border-brand-border text-white text-xs">Cancelar</button>
+                <button id="alertDialogSubmit" type="submit" class="px-4 py-2 rounded-xl bg-brand-cyan/10 border border-brand-cyan/40 text-brand-cyan text-xs font-semibold">Confirmar acción</button>
+            </div>
+        </form>
+    </dialog>
 
-            lucide.createIcons();
-        }
-
-        function resolveAlert(id) {
-            const alertObj = alerts.find(a => a.id === id);
-            if (alertObj) {
-                const unit = fleetUnits.find(u => u.id === alertObj.unitId);
-                if (unit && unit.status === 'Alerta') {
-                    unit.status = 'En Servicio';
-                    renderMapMarkers();
-                    renderFleetSidebar();
-                    updateFleetCounts();
-                }
-            }
-
-            alerts = alerts.filter(a => a.id !== id);
-            renderAlerts();
-            showToast(`Alerta de demostración ${id} marcada como atendida localmente.`, 'success');
-        }
-
-        function initCharts() {            const ctxRev = document.getElementById('revenueChart').getContext('2d');
-            
-            const gradientCyan = ctxRev.createLinearGradient(0, 0, 0, 200);
-            gradientCyan.addColorStop(0, 'rgba(88, 214, 232, 0.35)');
-            gradientCyan.addColorStop(1, 'rgba(88, 214, 232, 0)');
-
-            revenueChart = new Chart(ctxRev, {
-                type: 'line',
-                data: {
-                    labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
-                    datasets: [{
-                        label: 'Ingresos MXN ($)',
-                        data: [1500, 3800, 6900, 10200, 14100, 17200, 19850],
-                        borderColor: '#58d6e8',
-                        borderWidth: 2.5,
-                        backgroundColor: gradientCyan,
-                        fill: true,
-                        tension: 0.35,
-                        pointBackgroundColor: '#58d6e8',
-                        pointRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(39, 54, 74, 0.3)' },
-                            ticks: { color: '#9baec4', font: { size: 10 } }
-                        },
-                        y: {
-                            grid: { color: 'rgba(39, 54, 74, 0.3)' },
-                            ticks: { 
-                                color: '#9baec4', 
-                                font: { size: 10 },
-                                callback: value => '$' + value
-                            }
-                        }
-                    }
-                }
-            });
-
-            const ctxPay = document.getElementById('paymentChart').getContext('2d');
-            paymentChart = new Chart(ctxPay, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Efectivo', 'Pago Digital'],
-                    datasets: [{
-                        data: [14200, 5650],
-                        backgroundColor: ['#7bd8ad', '#58d6e8'],
-                        borderColor: '#121b28',
-                        borderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#edf3fb',
-                                font: { size: 11 },
-                                usePointStyle: true
-                            }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-
-        function toggleSimulation() {
-            isSimulating = !isSimulating;
-            const btn = document.getElementById('simToggleBtn');
-            const icon = document.getElementById('simIcon');
-            const text = document.getElementById('simText');
-
-            if (isSimulating) {
-                btn.className = "flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-green/20 border border-brand-green/40 text-brand-green text-xs font-semibold transition-all animate-pulse";
-                icon.setAttribute('data-lucide', 'pause');
-                text.textContent = "Simulación GPS: Activa";
-                showToast('Simulación de movimiento iniciada. No se recibe GPS real.', 'info');
-
-                simulationInterval = setInterval(() => {
-                    simulateEvent();
-                    moveFleetPositions();
-                }, 3000);
-            } else {
-                clearInterval(simulationInterval);
-                btn.className = "flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-surface border border-brand-border hover:border-brand-cyan/50 text-white text-xs font-medium transition-all";
-                icon.setAttribute('data-lucide', 'play');
-                text.textContent = "Simulación GPS: Inactiva";
-                showToast('Simulación de movimiento pausada.', 'warning');
-            }
-            lucide.createIcons();
-        }
-
-        function moveFleetPositions() {
-            fleetUnits.forEach(unit => {
-                if (unit.status === 'En Servicio') {
-                    // Small offset simulated inside Huauchinango urban layout
-                    const deltaLat = (Math.random() - 0.48) * 0.0018;
-                    const deltaLng = (Math.random() - 0.48) * 0.0018;
-                    unit.lat += deltaLat;
-                    unit.lng += deltaLng;
-
-                    if (mapMarkers[unit.id]) {
-                        mapMarkers[unit.id].setLatLng([unit.lat, unit.lng]);
-                    }
-                }
-            });
-            renderFleetSidebar();
-        }
-
-        function simulateEvent() {
-            const now = new Date();
-            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            
-            const huauchinangoLocs = ["Av. Revolución", "Bulevar Bicentenario", "Col. El Potrero", "Catalina", "La Mesta", "5 de Mayo"];
-            const randomLoc = huauchinangoLocs[Math.floor(Math.random() * huauchinangoLocs.length)];
-            
-            const actions = [
-                { action: "Viaje", detail: `Viaje en curso en ${randomLoc}`, actor: `TX-10${Math.floor(1 + Math.random() * 9)}` },
-                { action: "Transacción", detail: `Cobro $${(Math.random() * 80 + 35).toFixed(0)} MXN reportado en ${randomLoc}`, actor: "Taxi Huauchinango" }
-            ];
-
-            const randomEvt = actions[Math.floor(Math.random() * actions.length)];
-            
-            activityRows.unshift({
-                id: Date.now(),
-                time: timeStr,
-                actor: randomEvt.actor,
-                action: randomEvt.action,
-                detail: randomEvt.detail,
-                status: "Completado"
-            });
-
-            if (activityRows.length > 15) activityRows.pop();
-            renderActivity();
-
-            const tripsEl = document.getElementById('kpiTrips');
-            const revEl = document.getElementById('kpiRevenue');
-            
-            let currentTrips = parseInt(tripsEl.textContent);
-            tripsEl.textContent = currentTrips + 1;
-
-            let currentRev = parseInt(revEl.textContent.replace('$', '').replace(',', ''));
-            let addRev = Math.floor(45 + Math.random() * 65);
-            revEl.textContent = '$' + (currentRev + addRev).toLocaleString();
-        }
-
-        function exportDataCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,Hora,Unidad,Accion,Detalle\n";
-            activityRows.forEach(row => {
-                csvContent += `"${row.time}","${row.actor}","${row.action}","${row.detail}"\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `TTAPP_Huauchinango_Actividad_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            showToast("CSV de datos de demostración descargado.", "success");
-        }
-
-        function refreshDashboard() {
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
-
-            setTimeout(() => {
-                renderActivity();
-                renderAlerts();
-                renderMapMarkers();
-                renderFleetSidebar();
-                updateFleetCounts();
-                icon.classList.remove('animate-spin');
-                showToast("Vista de demostración actualizada; no se consultó un servidor.", "success");
-            }, 600);
-        }
-
-        document.getElementById("activitySearch").addEventListener("input", renderActivity);
-        document.getElementById("activityFilter").addEventListener("change", renderActivity);
-
-        window.onload = function() {
-            lucide.createIcons();
-            initMap();
-            renderActivity();
-            renderAlerts();
-            initCharts();
-        };
-    </script>
+    <script src="board.js" defer></script>
 </body>
 </html>
