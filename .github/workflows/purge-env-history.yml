@@ -92,7 +92,7 @@ jobs:
             fi
           done
 
-          git -C "$MIRROR_DIR" remote add origin "$REPOSITORY_URL"
+          git -C "$MIRROR_DIR" remote set-url origin "$REPOSITORY_URL"
           git -C "$MIRROR_DIR" push --force --prune origin \
             '+refs/heads/*:refs/heads/*' \
             '+refs/tags/*:refs/tags/*'
